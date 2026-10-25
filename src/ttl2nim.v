@@ -20,7 +20,9 @@
 module ttl2nim(
     input [1:0] adc_clk_i,
     output adc_cdcs_o,
-    output [7:0] led_o
+    output [7:0] led_o,
+    output [13:0] dac_dat_o,
+    output dac_clk_o, dac_sel_o, dac_wrt_o, dac_rst_o
 );
     // ----- Clock -----
     assign adc_cdcs_o = 1'b1;  // clock duty cycle stabilizer
@@ -61,4 +63,26 @@ module ttl2nim(
     wire [31:0] rev_cnt = {<<{cnt}};
     assign led_o = {rev_cnt[9:2]};
     `endif // LED_CLOCK
+
+
+    // ----- DAC -----
+    assign dac_rst_o = ~locked;  // wait until clocks are locked
+
+    // OUT1: 50% duty square pulse
+    // OUT2: 25% duty square pulse
+    wire signed [13:0] out1 = cnt[6] ? 14'sd4000 : -14'sd4000;
+    wire signed [13:0] out2 = cnt[6] & cnt[5] ? 14'sd4000 : -14'sd4000;
+    reg [13:0] dac_a, dac_b;
+    always @(posedge clk125) begin
+        dac_a <= {out1[13], ~out1[12:0]};
+        dac_b <= {out2[13], ~out2[12:0]};
+    end
+
+    // use one bus, switch outputs twice a tick
+    ODDR o_sel (.Q(dac_sel_o), .C(clk125),  .D1(1'b1), .D2(1'b0), .CE(1'b1), .S(1'b0), .R(1'b0));
+    ODDR o_dat [13:0] (.Q(dac_dat_o), .C(clk125), .D1(dac_b), .D2(dac_a), .CE(1'b1), .S(1'b0), .R(1'b0));
+
+    ODDR o_wrt (.Q(dac_wrt_o), .C(clk250),  .D1(1'b0), .D2(1'b1), .CE(1'b1), .S(1'b0), .R(1'b0));
+    // DAC clock's posedge comes after write established
+    ODDR o_clk (.Q(dac_clk_o), .C(clk250p), .D1(1'b0), .D2(1'b1), .CE(1'b1), .S(1'b0), .R(1'b0));
 endmodule
