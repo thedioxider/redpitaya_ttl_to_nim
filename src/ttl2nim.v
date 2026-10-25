@@ -19,13 +19,37 @@
 
 module ttl2nim(
     input [1:0] adc_clk_i,
+    output adc_cdcs_o,
     output [7:0] led_o
 );
     // ----- Clock -----
-    wire clk_in, clk125;
+    assign adc_cdcs_o = 1'b1;  // clock duty cycle stabilizer
+
+    wire clk_in, fb_u, fb, locked;
+    wire clk125_u, clk250_u, clk250p_u;
+    wire clk125, clk250, clk250p;
 
     IBUFDS ibuf (.I(adc_clk_i[1]), .IB(adc_clk_i[0]), .O(clk_in));
-    BUFG bufg (.I(clk_in), .O(clk125));
+    PLLE2_BASE #(
+        .CLKIN1_PERIOD(8.0),
+        .CLKFBOUT_MULT(8),
+        .CLKOUT0_DIVIDE(8),
+        .CLKOUT1_DIVIDE(4),
+        .CLKOUT2_DIVIDE(4),
+        .CLKOUT2_PHASE(-45.0)
+    ) pll (
+        .CLKIN1(clk_in), .CLKFBOUT(fb_u), .CLKFBIN(fb),
+        .CLKOUT0(clk125_u),
+        .CLKOUT1(clk250_u),
+        .CLKOUT2(clk250p_u),
+        .LOCKED(locked),
+        .RST(1'b0),
+        .PWRDWN(1'b0)
+    );
+    BUFG bfb   (.I(fb_u), .O(fb));
+    BUFG bufg0 (.I(clk125_u), .O(clk125));
+    BUFG bufg1 (.I(clk250_u), .O(clk250));
+    BUFG bufg2 (.I(clk250p_u), .O(clk250p));
 
     reg [31:0] cnt = 0;  // tick counter
     always @(posedge clk125)
