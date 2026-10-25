@@ -67,6 +67,8 @@ module ttl2nim(
     `ifdef LED_CLOCK
     wire [31:0] rev_cnt = {<<{cnt}};
     assign led_o[6:0] = rev_cnt[8:2];
+    `else
+    assign led_o[6:0] = 7'b0;
     `endif // LED_CLOCK
 
 
