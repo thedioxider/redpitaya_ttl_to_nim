@@ -80,8 +80,6 @@ module ttl2nim(
 
 
     // ----- DAC -----
-    // OUT1: IN1 copy
-    // OUT2: NIM signal
     localparam signed [13:0] DAC_GND  =  -14'sd115;  // ~ 0V DAC
     localparam signed [13:0] TTL_THR  =   14'sd615;  // ~ 1.5V HV ADC
     localparam signed [13:0] NIM_HI   = -14'sd6400;  // ~ -0.8V DAC
@@ -92,7 +90,6 @@ module ttl2nim(
 
     // output values
     wire signed [13:0] out1, out2;
-    assign out1 = in1;
 
     // actual DAC values, clocked
     reg [13:0] dac_a, dac_b;
@@ -101,7 +98,11 @@ module ttl2nim(
         dac_b <= {out2[13], ~out2[12:0]};
     end
 
+    // OUT1: NIM signal without subsampling
+    assign out1 = (in1 > TTL_THR) ? NIM_HI : NIM_LO;
+
     `ifdef ENABLE_SUBSAMPLING
+    // OUT2: NIM signal with subsampling
     reg signed [13:0] nim_level = NIM_LO;
     assign out2 = nim_level;
 
@@ -179,7 +180,8 @@ module ttl2nim(
         else              nim_level <= r4_high ? NIM_HI : NIM_LO;
 
     `else // ENABLE_SUBSAMPLING
-    assign out2 = (in1 > TTL_THR) ? NIM_HI : NIM_LO;
+    // OUT2: NIM signal without subsampling
+    assign out2 = out1;
     `endif // ENABLE_SUBSAMPLING
 
     // use one bus, switch outputs twice a tick
