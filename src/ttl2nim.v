@@ -16,9 +16,13 @@
 
 /** Enables displaying binary tick counter on LEDs */
 `define LED_CLOCK
+/** If disabled, just copy ADC to DAC */
+// `define CONVERT_TO_NIM
 
 module ttl2nim(
     input [1:0] adc_clk_i,
+    input [15:0] adc_dat_a_i,
+    input [15:0] adc_dat_b_i,
     output adc_cdcs_o,
     output [7:0] led_o,
     output [13:0] dac_dat_o,
@@ -59,28 +63,47 @@ module ttl2nim(
 
 
     // ----- LED -----
+    assign led_o[7] = locked;
     `ifdef LED_CLOCK
     wire [31:0] rev_cnt = {<<{cnt}};
-    assign led_o = {rev_cnt[9:2]};
+    assign led_o[6:0] = rev_cnt[8:2];
     `endif // LED_CLOCK
+
+
+    // ----- ADC -----
+    reg [13:0] adc_raw;  // raw bits read from ADC
+    always @(posedge clk125)
+        adc_raw <= adc_dat_a_i[15:2];  // cut reserved bits
+    wire signed [13:0] in1 = {adc_raw[13], ~adc_raw[12:0]};  // actual ADC value
 
 
     // ----- DAC -----
     assign dac_rst_o = ~locked;  // wait until clocks are locked
+    // output values to be assigned
+    wire signed [13:0] out1;
+    wire signed [13:0] out2;
 
-    // OUT1: 50% duty square pulse
-    // OUT2: 25% duty square pulse
-    wire signed [13:0] out1 = cnt[6] ? 14'sd4000 : -14'sd4000;
-    wire signed [13:0] out2 = cnt[6] & cnt[5] ? 14'sd4000 : -14'sd4000;
+    // actual DAC values, clocked
     reg [13:0] dac_a, dac_b;
     always @(posedge clk125) begin
         dac_a <= {out1[13], ~out1[12:0]};
         dac_b <= {out2[13], ~out2[12:0]};
     end
 
+    `ifdef CONVERT_TO_NIM
+    // TODO
+
+    `else // CONVERT_TO_NIM
+    // OUT1: 50% duty square pulse
+    // OUT2: copied input signal
+    assign out1 = cnt[6] ? 14'sd4000 : -14'sd4000;
+    assign out2 = in1;
+
     // use one bus, switch outputs twice a tick
     ODDR o_sel (.Q(dac_sel_o), .C(clk125),  .D1(1'b1), .D2(1'b0), .CE(1'b1), .S(1'b0), .R(1'b0));
     ODDR o_dat [13:0] (.Q(dac_dat_o), .C(clk125), .D1(dac_b), .D2(dac_a), .CE(1'b1), .S(1'b0), .R(1'b0));
+    `endif // CONVERT_TO_NIM
+
 
     ODDR o_wrt (.Q(dac_wrt_o), .C(clk250),  .D1(1'b0), .D2(1'b1), .CE(1'b1), .S(1'b0), .R(1'b0));
     // DAC clock's posedge comes after write established
