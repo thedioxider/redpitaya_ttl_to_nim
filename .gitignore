@@ -1,0 +1,6 @@
+# The Vivado project is a build artifact, regenerated from recreate_project.tcl into build/.
+/build/
+/out/
+*.jou
+*.log
+.Xil/
