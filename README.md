@@ -47,15 +47,16 @@ source -notrace [get_property DIRECTORY [current_project]]/../export_project.tcl
 
 ### How to run on Red Pitaya
 
-1. Use `./redpitaya_genbin.sh ./build/path/to/<top_module_name>` to convert `.bit` implementation file to `.bit.bin` bitstream format. You will find the output file in the same directory.
+1. In Vivado, run implementation, then generate bitstream.
+2. Use `./redpitaya_genbin.sh ./build/path/to/<top_module_name>` to convert `.bit` implementation file to `.bit.bin` bitstream format. You will find the output file in the same directory.
    - Don't specify implementation's extension. For example, if you need to convert `ttl_to_nim_wrapper.bit`, the path should end just with `ttl_to_nim_wrapper`.
    - Implementation output path should be `./build/redpitaya_ttl_to_nim.runs/impl_1/`.
    - Ensure that `bootgen` is in the PATH.
-2. Copy the bitstream file to Red Pitaya. For example:
+3. Copy the bitstream file to Red Pitaya. For example:
    ```sh
    scp ./build/redpitaya_ttl_to_nim.runs/impl_1/<top_module_name>.bit.bin root@rp-xxxxxx.local:/tmp/<top_module_name>.bit.bin
    ```
-3. On Red Pitaya, run:
+4. On Red Pitaya, run:
    ```sh
    fpgautil -b /tmp/<top_module_name>.bit.bin
    ```
