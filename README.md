@@ -1,6 +1,6 @@
 # redpitaya_ttl_to_nim
 
-TTL2NIM converter for Red Pitaya (Zynq `xc7z010clg400-1`).
+TTL2NIM converter for Red Pitaya (Zynq `xc7z010clg400-1`).\
 Project created for Vivado 2025.2.
 
 ## How to use the project
