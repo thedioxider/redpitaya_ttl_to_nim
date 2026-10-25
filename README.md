@@ -43,7 +43,6 @@ source -notrace [get_property DIRECTORY [current_project]]/../export_project.tcl
 
 - Keep new sources in `src/` / `constraints/`. Add them via _Add Sources_ **without** "Copy sources into project", otherwise they get copied into the ignored `build/` and the script won't find them on restore.
 - Restoring fails if `build/` already exists: remove `build/` first.
-- Block-diagram layout (block positions) is not stored in the script; Vivado auto-arranges on restore.
 - Don't use incremental synthesis with a reference checkpoint (`utils_1`): the `.dcp` is ignored, so the restore would fail on a missing file.
 
 ### How to run on Red Pitaya

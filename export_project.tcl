@@ -1,4 +1,5 @@
-# Export the open project to recreate_project.tcl with repo-relative paths.
+# Export the open project to recreate_project.tcl with repo-relative paths
+# and without volatile state.
 # Usage (Vivado Tcl console):
 #   source -notrace [get_property DIRECTORY [current_project]]/../export_project.tcl
 
@@ -18,6 +19,13 @@ apply {{} {
     set s [read $f]
     close $f
     set s [string map [list "$repo/" {$origin_dir/}] $s]
+
+    # Strip volatile state that changes between exports without design changes:
+    # webtalk usage counters, run/sim staleness flags, BD canvas view state.
+    # Block placement (preplace/levelinfo/pagesize) is kept.
+    regsub -all -line {^set_property -name "(webtalk\.[^"]*|needs_refresh|sim_compile_state)" .*\n} $s {} s
+    regsub -all -line {^\s*"(Default View_TopLeft|Default View_ScaleFactor|ExpandedHierarchyInLayout)":"[^"]*",\n} $s {} s
+
     set f [open $script w]
     puts -nonewline $f $s
     close $f
