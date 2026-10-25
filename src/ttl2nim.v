@@ -17,7 +17,7 @@
 /** Enables displaying binary tick counter on LEDs */
 `define LED_CLOCK
 /** If disabled, just copy ADC to DAC */
-// `define CONVERT_TO_NIM
+`define CONVERT_TO_NIM
 
 module ttl2nim(
     input [1:0] adc_clk_i,
@@ -78,6 +78,10 @@ module ttl2nim(
 
 
     // ----- DAC -----
+    localparam signed [13:0] TTL_THR = 14'sd615;
+    localparam signed [13:0] NIM_HI = -14'sd6400;
+    localparam signed [13:0] NIM_LO = -14'sd115;
+
     assign dac_rst_o = ~locked;  // wait until clocks are locked
     // output values to be assigned
     wire signed [13:0] out1;
@@ -91,7 +95,10 @@ module ttl2nim(
     end
 
     `ifdef CONVERT_TO_NIM
-    // TODO
+    // OUT2: NIM signal
+    assign dac_sel_o = 1'b1;  // select OUT2
+    assign dac_dat_o = dac_b;
+    assign out1 = (in1 > TTL_THR) ? NIM_HI : NIM_LO;
 
     `else // CONVERT_TO_NIM
     // OUT1: 50% duty square pulse
