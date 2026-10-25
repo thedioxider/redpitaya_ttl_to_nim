@@ -82,10 +82,11 @@ module ttl2nim(
     // ----- DAC -----
     // OUT1: IN1 copy
     // OUT2: NIM signal
-    localparam signed [13:0] DAC_GND =  -14'sd115;  // ~ 0V DAC
-    localparam signed [13:0] TTL_THR =   14'sd615;  // ~ 1.5V HV ADC
-    localparam signed [13:0] NIM_HI  = -14'sd6400;  // ~ -0.8V DAC
-    localparam signed [13:0] NIM_LO  = DAC_GND;
+    localparam signed [13:0] DAC_GND  =  -14'sd115;  // ~ 0V DAC
+    localparam signed [13:0] TTL_THR  =   14'sd615;  // ~ 1.5V HV ADC
+    localparam signed [13:0] NIM_HI   = -14'sd6400;  // ~ -0.8V DAC
+    localparam signed [13:0] NIM_LO   = DAC_GND;
+    localparam signed [13:0] NIM_SPAN = NIM_HI - NIM_LO;
 
     assign dac_rst_o = ~locked;  // wait until clocks are locked
 
@@ -101,8 +102,20 @@ module ttl2nim(
     end
 
     `ifdef ENABLE_SUBSAMPLING
-    reg [13:0] nim_level = NIM_LO;
+    reg signed [13:0] nim_level = NIM_LO;
     assign out2 = nim_level;
+
+    // -- PREPROCESSING: precompute reciprocal table
+    localparam FRACTION_BITS = 14;  // how many bits numerator & denominator contains
+    localparam RECIP_RESOLUTION = 18;
+    localparam SUBSAMPLE_RESOLUTION = 8;
+    reg [RECIP_RESOLUTION:0] recip_rom [0:(1 << FRACTION_BITS) - 1];
+    integer i;
+    initial begin
+        recip_rom[0] = 0;
+        for (i = 1; i < (1 << FRACTION_BITS); i = i + 1)
+            recip_rom[i] = ((1 << RECIP_RESOLUTION) + i / 2) / i;  // round to nearest integer
+    end
 
     // -- STAGE 0: update samples, compare them against threshold
     reg signed [13:0] s0, s1;  // last two samples
@@ -110,36 +123,60 @@ module ttl2nim(
         s0 <= s1;
         s1 <= in1;
     end
-    wire               ttl_high = (s1 > TTL_THR);
-    wire               ttl_rise = (s0 <= TTL_THR) && ttl_high;
-    wire               ttl_fall = (s0 >  TTL_THR) && !ttl_high;
-    wire signed [14:0] s0_to_thr = ttl_rise ? (TTL_THR - s0) : (s0 - TTL_THR);
-    wire signed [14:0] s_delta   = ttl_rise ? (s1 - s0) : (s0 - s1);
+    wire        ttl_high  = (s1 > TTL_THR);
+    wire        ttl_rise  = (s0 <= TTL_THR) && ttl_high;
+    wire        ttl_fall  = (s0 >  TTL_THR) && !ttl_high;
+    wire [13:0] s0_to_thr = (TTL_THR > s0) ? (TTL_THR - s0) : (s0 - TTL_THR);
+    wire [13:0] s_delta   = (s1 > s0) ? (s1 - s0) : (s0 - s1);
 
     // -- STAGE 1: lock comparison results
-    reg        r1_high, r1_rise, r1_fall;
-    reg [14:0] r1_num, r1_den;  // numerator & denominator for position formula
+    reg r1_high, r1_rise, r1_fall;
+    reg [FRACTION_BITS - 1:0] r1_num, r1_den;  // numerator & denominator for position formula
     always @(posedge clk125) begin
         {r1_high, r1_rise, r1_fall} <= {ttl_high, ttl_rise, ttl_fall};
         {r1_num, r1_den} <= {s0_to_thr, s_delta};
     end
 
-    // -- STAGE 2: find threshold position between samples
-    reg       r2_high, r2_rise, r2_fall;
-    reg [8:0] r2_subpos;  // 0 - THR at s0, 256 - THR at s1
+    // -- STAGE 2: lookup inverse denominator in ROM
+    reg r2_high, r2_rise, r2_fall;
+    reg [FRACTION_BITS - 1:0] r2_num;
+    reg [RECIP_RESOLUTION:0] r2_recip;
     always @(posedge clk125) begin
         {r2_high, r2_rise, r2_fall} <= {r1_high, r1_rise, r1_fall};
-        r2_subpos <= (r1_rise || r1_fall) ? ((r1_num << 8) / r1_den) : 9'b0;
+        r2_num <= r1_num;
+        r2_recip <= recip_rom[r1_den];
     end
 
-    // -- STAGE 3: output level with subsampling on edges
-    wire signed [9:0]  subpos  = {1'b0, r2_subpos};  // signed to keep expressions signed
-    wire signed [23:0] subrise = NIM_HI * ((10'sd1<<8) - subpos);
-    wire signed [23:0] subfall = NIM_HI * subpos;
+    // -- STAGE 3: find threshold position between samples
+    reg r3_high, r3_rise, r3_fall;
+    reg [SUBSAMPLE_RESOLUTION:0] r3_subpos;  // 0 - THR at s0, 2^SUBSAMPLE_RESOLUTION - THR at s1
+    localparam W3_PROD_W = FRACTION_BITS + RECIP_RESOLUTION + 1;
+    localparam W3_PROD_SHIFT = RECIP_RESOLUTION - SUBSAMPLE_RESOLUTION;
+    wire [W3_PROD_W - 1:0] w3_prod = r2_num * r2_recip;
+    wire [W3_PROD_W - W3_PROD_SHIFT - 1:0] w3_subpos = w3_prod >> W3_PROD_SHIFT;
+    always @(posedge clk125) begin
+        {r3_high, r3_rise, r3_fall} <= {r2_high, r2_rise, r2_fall};
+        r3_subpos <= (w3_subpos > (1 << SUBSAMPLE_RESOLUTION))
+            ? (1 << SUBSAMPLE_RESOLUTION)
+            : w3_subpos[SUBSAMPLE_RESOLUTION:0];
+    end
+
+    // -- STAGE 4: compute rise/fall levels
+    reg r4_high, r4_rise, r4_fall;
+    wire signed [SUBSAMPLE_RESOLUTION + 1:0] w4_subpos = {1'b0, r3_subpos};  // signed to keep expressions signed
+    reg signed [13 + SUBSAMPLE_RESOLUTION:0] r4_rise_part;
+    reg signed [13 + SUBSAMPLE_RESOLUTION:0] r4_fall_part;
+    always @(posedge clk125) begin
+        {r4_high, r4_rise, r4_fall} <= {r3_high, r3_rise, r3_fall};
+        r4_rise_part <= NIM_SPAN * ((1 <<< SUBSAMPLE_RESOLUTION) - w4_subpos);
+        r4_fall_part <= NIM_SPAN * w4_subpos;
+    end
+
+    // -- STAGE 5: output level with subsampling on edges
     always @(posedge clk125)
-        if      (r2_rise) nim_level <= subrise >>> 8;
-        else if (r2_fall) nim_level <= subfall >>> 8;
-        else              nim_level <= r2_high ? NIM_HI : NIM_LO;
+        if      (r4_rise) nim_level <= NIM_LO + (r4_rise_part >>> SUBSAMPLE_RESOLUTION);
+        else if (r4_fall) nim_level <= NIM_LO + (r4_fall_part >>> SUBSAMPLE_RESOLUTION);
+        else              nim_level <= r4_high ? NIM_HI : NIM_LO;
 
     `else // ENABLE_SUBSAMPLING
     assign out2 = (in1 > TTL_THR) ? NIM_HI : NIM_LO;
