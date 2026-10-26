@@ -80,16 +80,26 @@ module ttl2nim(
 
 
     // ----- DAC -----
-    localparam signed [13:0] DAC_GND  =  -14'sd115;  // ~ 0V DAC
-    localparam signed [13:0] TTL_THR  =   14'sd615;  // ~ 1.5V HV ADC
-    localparam signed [13:0] NIM_HI   = -14'sd6400;  // ~ -0.8V DAC
-    localparam signed [13:0] NIM_LO   = DAC_GND;
-    localparam signed [13:0] NIM_SPAN = NIM_HI - NIM_LO;
+    localparam signed [13:0] DAC_GND    =  -14'sd115;  // ~ 0V DAC
+    localparam signed [13:0] TTL_THR_HI =   14'sd655;  // ~ 1.6V HV ADC
+    localparam signed [13:0] TTL_THR_LO =   14'sd575;  // ~ 1.4V HV ADC
+    localparam signed [13:0] NIM_HI     = -14'sd6400;  // ~ -0.8V DAC
+    localparam signed [13:0] NIM_LO     = DAC_GND;
+    localparam signed [13:0] NIM_SPAN   = NIM_HI - NIM_LO;
 
     assign dac_rst_o = ~locked;  // wait until clocks are locked
 
     // output values
     wire signed [13:0] out1, out2;
+
+    reg ttl_state = 0;  // remembered logic level
+    wire ttl_rise = !ttl_state && (in1 > TTL_THR_HI);
+    wire ttl_fall = ttl_state && (in1 < TTL_THR_LO);
+    wire ttl_high = ttl_rise || (ttl_state && !ttl_fall);
+    wire signed [13:0] thr = ttl_state ? TTL_THR_LO : TTL_THR_HI;
+    always @(posedge clk125)
+        if      (ttl_rise) ttl_state <= 1;
+        else if (ttl_fall) ttl_state <= 0;
 
     // actual DAC values, clocked
     reg [13:0] dac_a, dac_b;
@@ -99,7 +109,7 @@ module ttl2nim(
     end
 
     // OUT1: NIM signal without subsampling
-    assign out1 = (in1 > TTL_THR) ? NIM_HI : NIM_LO;
+    assign out1 = ttl_high ? NIM_HI : NIM_LO;
 
     `ifdef ENABLE_SUBSAMPLING
     // OUT2: NIM signal with subsampling
@@ -119,23 +129,19 @@ module ttl2nim(
     end
 
     // -- STAGE 0: update samples, compare them against threshold
-    reg signed [13:0] s0, s1;  // last two samples
-    always @(posedge clk125) begin
-        s0 <= s1;
-        s1 <= in1;
-    end
-    wire        ttl_high  = (s1 > TTL_THR);
-    wire        ttl_rise  = (s0 <= TTL_THR) && ttl_high;
-    wire        ttl_fall  = (s0 >  TTL_THR) && !ttl_high;
-    wire [13:0] s0_to_thr = (TTL_THR > s0) ? (TTL_THR - s0) : (s0 - TTL_THR);
-    wire [13:0] s_delta   = (s1 > s0) ? (s1 - s0) : (s0 - s1);
+    reg  signed [13:0] prev_s;  // previous input sample
+    wire signed [13:0] curr_s = in1;
+    always @(posedge clk125)
+        prev_s <= curr_s;
+    wire [13:0] prev_to_thr = (thr > prev_s) ? (thr - prev_s) : (prev_s - thr);
+    wire [13:0] s_delta     = (curr_s > prev_s) ? (curr_s - prev_s) : (prev_s - curr_s);
 
     // -- STAGE 1: lock comparison results
     reg r1_high, r1_rise, r1_fall;
     reg [FRACTION_BITS - 1:0] r1_num, r1_den;  // numerator & denominator for position formula
     always @(posedge clk125) begin
         {r1_high, r1_rise, r1_fall} <= {ttl_high, ttl_rise, ttl_fall};
-        {r1_num, r1_den} <= {s0_to_thr, s_delta};
+        {r1_num, r1_den} <= {prev_to_thr, s_delta};
     end
 
     // -- STAGE 2: lookup inverse denominator in ROM
