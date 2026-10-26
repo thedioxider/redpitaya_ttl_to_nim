@@ -153,30 +153,30 @@ module ttl2nim(
         r2_num <= r1_num;
         r2_recip <= recip_rom[r1_den];
     end
+    localparam W2_PROD_W = FRACTION_BITS + RECIP_RESOLUTION + 1;
+    localparam W2_PROD_SHIFT = RECIP_RESOLUTION - SUBSAMPLE_RESOLUTION;
+    wire [W2_PROD_W - 1:0]                 w2_prod   = r2_num * r2_recip;
+    wire [W2_PROD_W - W2_PROD_SHIFT - 1:0] w2_subpos = w2_prod >> W2_PROD_SHIFT;
 
     // -- STAGE 3: find threshold position between samples
     reg r3_high, r3_rise, r3_fall;
     reg [SUBSAMPLE_RESOLUTION:0] r3_subpos;  // 0 - THR at s0, 2^SUBSAMPLE_RESOLUTION - THR at s1
-    localparam W3_PROD_W = FRACTION_BITS + RECIP_RESOLUTION + 1;
-    localparam W3_PROD_SHIFT = RECIP_RESOLUTION - SUBSAMPLE_RESOLUTION;
-    wire [W3_PROD_W - 1:0] w3_prod = r2_num * r2_recip;
-    wire [W3_PROD_W - W3_PROD_SHIFT - 1:0] w3_subpos = w3_prod >> W3_PROD_SHIFT;
     always @(posedge clk125) begin
         {r3_high, r3_rise, r3_fall} <= {r2_high, r2_rise, r2_fall};
-        r3_subpos <= (w3_subpos > (1 << SUBSAMPLE_RESOLUTION))
+        r3_subpos <= (w2_subpos > (1 << SUBSAMPLE_RESOLUTION))
             ? (1 << SUBSAMPLE_RESOLUTION)
-            : w3_subpos[SUBSAMPLE_RESOLUTION:0];
+            : w2_subpos[SUBSAMPLE_RESOLUTION:0];
     end
+    wire signed [SUBSAMPLE_RESOLUTION + 1:0] w3_subpos = {1'b0, r3_subpos};  // signed to keep expressions signed
 
     // -- STAGE 4: compute rise/fall levels
     reg r4_high, r4_rise, r4_fall;
-    wire signed [SUBSAMPLE_RESOLUTION + 1:0] w4_subpos = {1'b0, r3_subpos};  // signed to keep expressions signed
     reg signed [13 + SUBSAMPLE_RESOLUTION:0] r4_rise_part;
     reg signed [13 + SUBSAMPLE_RESOLUTION:0] r4_fall_part;
     always @(posedge clk125) begin
         {r4_high, r4_rise, r4_fall} <= {r3_high, r3_rise, r3_fall};
-        r4_rise_part <= NIM_SPAN * ((1 <<< SUBSAMPLE_RESOLUTION) - w4_subpos);
-        r4_fall_part <= NIM_SPAN * w4_subpos;
+        r4_rise_part <= NIM_SPAN * ((1 <<< SUBSAMPLE_RESOLUTION) - w3_subpos);
+        r4_fall_part <= NIM_SPAN * w3_subpos;
     end
 
     // -- STAGE 5: output level with subsampling on edges
