@@ -22,12 +22,13 @@ module ttl2nim_subsampler #(
 ) (
     input clk,
     input signed [13:0] ttl_i,
+    input [SUBSAMPLE_RESOLUTION - 1:0] fine_delay,
     output signed [13:0] nim_o
 );
     localparam signed [13:0] NIM_HI   = `LVL_NIM_HI,
                              NIM_LO   = `LVL_NIM_LO,
                              NIM_SPAN = NIM_HI - NIM_LO;
-    localparam LATENCY = 5;  // the module delays signal by this many ticks
+    localparam LATENCY = 6;  // the module delays signal by this many ticks
     localparam FRACTION_BITS = 14;  // how many bits numerator & denominator contains
 
     // Abbreviations
@@ -48,7 +49,7 @@ module ttl2nim_subsampler #(
             recip_rom[i] = ((1 << RR) + i / 2) / i;  // round to nearest integer
     end
 
-    // -- STAGE 0: update samples, compare them against threshold
+    // -- STAGE 0: track current and previous samples
     wire signed [13:0] ttl_sample, ttl_thr;
     wire ttl_high, ttl_edge;
     ttl_signal ttl_signal_i (
@@ -60,10 +61,11 @@ module ttl2nim_subsampler #(
     wire signed [13:0] curr_s = ttl_sample;
     always @(posedge clk)
         prev_s <= curr_s;
+
+    // -- STAGE 1: compare samples against threshold
     wire [13:0] prev_to_thr = (ttl_thr > prev_s) ? (ttl_thr - prev_s) : (prev_s - ttl_thr);
     wire [13:0] s_delta     = (curr_s > prev_s) ? (curr_s - prev_s) : (prev_s - curr_s);
 
-    // -- STAGE 1: lock comparison results
     reg r1_high, r1_edge;
     reg [FB - 1:0] r1_num, r1_den;  // numerator & denominator for position formula
     always @(posedge clk) begin
@@ -71,7 +73,7 @@ module ttl2nim_subsampler #(
         {r1_num, r1_den} <= {prev_to_thr, s_delta};
     end
 
-    // -- STAGE 2: lookup inverse denominator in ROM
+    // -- STAGE 2: lookup inverse denominator in RAM
     reg r2_high, r2_edge;
     reg [FB - 1:0] r2_num;
     reg [RR:0] r2_recip;
@@ -80,31 +82,55 @@ module ttl2nim_subsampler #(
         r2_num <= r1_num;
         r2_recip <= recip_rom[r1_den];
     end
-    localparam W2_PROD_W = FB + RR + 1;
-    localparam W2_PROD_SHIFT = RR - SR;
-    wire [W2_PROD_W - 1:0]                 w2_prod   = r2_num * r2_recip;
-    wire [W2_PROD_W - W2_PROD_SHIFT - 1:0] w2_subpos = w2_prod >> W2_PROD_SHIFT;
+
+    // -- STAGE 3: find threshold position between samples
+    wire [FB + RR:0] w2_prod         = r2_num * r2_recip;
+    wire [FB + SR:0] w2_prod_shifted = w2_prod >> (RR - SR);
+
+    reg r3_high, r3_edge;
     // threshold position: 0 - at s0, 2^SR - at s1
-    wire [SR:0] w2_clip = (w2_subpos > (1 << SR)) ? (1 << SR) : w2_subpos[SR:0]; 
-
-    // -- STAGE 3: find threshold position between samples and compute fraction spent high
-    reg [SR:0] r3_high_duty;
+    reg [SR:0] r3_subpos;
     always @(posedge clk) begin
-        if      (r2_edge) r3_high_duty <= r2_high ? (1 << SR) - w2_clip : w2_clip;
-        else              r3_high_duty <= r2_high ? (1 << SR)           : 0;
-    end
-    wire signed [SR + 1:0] w3_high_duty_s = {1'b0, r3_high_duty};  // signed to keep expressions signed
-
-    // -- STAGE 4: scale level by NIM signal span
-    reg signed [13 + SR:0] r4_edge_part;
-    always @(posedge clk) begin
-        r4_edge_part <= NIM_SPAN * w3_high_duty_s;
+        {r3_high, r3_edge} <= {r2_high, r2_edge};
+        r3_subpos <= (w2_prod_shifted > (1 << SR)) ? (1 << SR) : w2_prod_shifted[SR:0];
     end
 
-    // -- STAGE 5: offset the signal to NIM_LO
+    // -- STAGE 4: compute fraction spent high
+    wire [SR:0] reside_window = (1 << SR) - fine_delay;  // first steps of the tick that stay in it
+    reg  [SR:0] w3_stay,   // high time which stays in current tick
+                w3_moved;  // high time carried into next tick
+    always @* begin
+        if (r3_edge) begin
+            if (r3_high) begin
+                w3_stay  = r3_subpos < reside_window ? reside_window - r3_subpos : 0;
+                w3_moved = r3_subpos < reside_window ? fine_delay                : (1 << SR) - r3_subpos;
+            end else begin
+                w3_stay  = r3_subpos < reside_window ? r3_subpos : reside_window;
+                w3_moved = r3_subpos < reside_window ? 0         : r3_subpos - reside_window;
+            end
+        end else begin
+            w3_stay  = r3_high ? reside_window : 0;
+            w3_moved = r3_high ? fine_delay    : 0;
+        end
+    end
+
+    reg [SR:0] r4_moved;
+    reg signed [SR + 1:0] r4_high_duty;  // signed to keep expressions signed
+    always @(posedge clk) begin
+        r4_moved <= w3_moved;  // carried into next tick
+        r4_high_duty <= {1'b0, w3_stay + r4_moved};
+    end
+
+    // -- STAGE 5: scale level by NIM signal span
+    reg signed [13 + SR:0] r5_edge_part;
+    always @(posedge clk) begin
+        r5_edge_part <= NIM_SPAN * r4_high_duty;
+    end
+
+    // -- STAGE 6: offset the signal to NIM_LO
     // ((a + b/2) / b): round to nearest instead of flooring
     // full equation: NIM_LO + ((NIM_SPAN * high_duty + (1 <<< (SR - 1))) >>> SR)
     localparam NIM_LO_OFS = (NIM_LO <<< SR) + (1 <<< (SR - 1));
     always @(posedge clk)
-        nim_level <= (r4_edge_part + NIM_LO_OFS) >>> SR;
+        nim_level <= (r5_edge_part + NIM_LO_OFS) >>> SR;
 endmodule
