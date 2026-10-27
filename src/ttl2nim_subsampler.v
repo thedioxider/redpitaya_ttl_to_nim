@@ -92,13 +92,16 @@ module ttl2nim_subsampler #(
     end
     wire signed [SR + 1:0] w3_high_duty_s = {1'b0, r3_high_duty};  // signed to keep expressions signed
 
-    // -- STAGE 4: compute rise/fall levels
+    // -- STAGE 4: scale level by NIM signal span
     reg signed [13 + SR:0] r4_edge_part;
     always @(posedge clk) begin
         r4_edge_part <= NIM_SPAN * w3_high_duty_s;
     end
 
-    // -- STAGE 5: output level with subsampling on edges
+    // -- STAGE 5: offset the signal to NIM_LO
+    // ((a + b/2) / b): round to nearest instead of flooring
+    // full equation: NIM_LO + ((NIM_SPAN * high_duty + (1 <<< (SR - 1))) >>> SR)
+    localparam NIM_LO_OFS = (NIM_LO <<< SR) + (1 <<< (SR - 1));
     always @(posedge clk)
-        nim_level <= NIM_LO + (r4_edge_part >>> SR);
+        nim_level <= (r4_edge_part + NIM_LO_OFS) >>> SR;
 endmodule
