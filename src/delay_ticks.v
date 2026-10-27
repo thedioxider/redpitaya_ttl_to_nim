@@ -14,9 +14,11 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
+`include "levels.vh"
+
 module delay_ticks #(
     parameter ADDR_W = 10,
-    parameter signed [13:0] DEFAULT_VALUE = 14'sd0
+    parameter signed [13:0] DEFAULT_VALUE = `LVL_NIM_LO
 ) (
     input clk,
     input [ADDR_W - 1:0] n_ticks,
