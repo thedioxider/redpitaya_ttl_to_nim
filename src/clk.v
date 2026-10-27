@@ -16,7 +16,15 @@ module clk(
     input [1:0] adc_clk_i,
     output clk_locked,
     output adc_cdcs_o,
-    output clk125, clk250, clk250p
+    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clk125 CLK" *)
+    (* X_INTERFACE_PARAMETER = "FREQ_HZ 125000000" *)
+    output clk125,
+    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clk250 CLK" *)
+    (* X_INTERFACE_PARAMETER = "FREQ_HZ 250000000" *)
+    output clk250,
+    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clk250p CLK" *)
+    (* X_INTERFACE_PARAMETER = "FREQ_HZ 250000000" *)
+    output clk250p
 );
     assign adc_cdcs_o = 1'b1;  // clock duty cycle stabilizer
 
