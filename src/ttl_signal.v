@@ -14,10 +14,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module ttl_signal #(
-    parameter signed [13:0] THR_HI = 14'sd655,  // ~ 1.6V HV ADC
-                            THR_LO = 14'sd575   // ~ 1.4V HV ADC
-) (
+`include "levels.vh"
+
+module ttl_signal(
     input clk,
     input signed [13:0] sample_i,
     // aligned bundle: all outputs describe sample_o
@@ -26,6 +25,9 @@ module ttl_signal #(
     output high_o,  // logic level for this sample
     output edge_o   // threshold crossed between previous and this sample
 );
+    localparam signed [13:0] THR_HI = `LVL_TTL_THR_HI,
+                             THR_LO = `LVL_TTL_THR_LO;
+
     reg state = 0;  // remembered logic state from last sample
 
     assign thr_o    = state ? THR_LO : THR_HI;

@@ -14,14 +14,16 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module ttl2nim_simple #(
-    parameter signed [13:0] NIM_HI = -14'sd6400,  // ~ -0.8V DAC
-                            NIM_LO =  -14'sd115   // ~ 0V DAC
-) (
+`include "levels.vh"
+
+module ttl2nim_simple(
     input clk,
     input signed [13:0] ttl_i,
     output signed [13:0] nim_o
 );
+    localparam signed [13:0] NIM_HI = `LVL_NIM_HI,
+                             NIM_LO = `LVL_NIM_LO;
+
     wire ttl_high;
     ttl_signal (.clk(clk), .sample_i(ttl_i), .high_o(ttl_high));
     assign nim_o = ttl_high ? NIM_HI : NIM_LO;

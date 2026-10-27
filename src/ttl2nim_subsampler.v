@@ -14,9 +14,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
+`include "levels.vh"
+
 module ttl2nim_subsampler #(
-    parameter signed [13:0] NIM_HI = -14'sd6400,  // ~ -0.8V DAC
-                            NIM_LO =  -14'sd115,  // ~ 0V DAC
     parameter RECIP_RESOLUTION = 18,
     parameter SUBSAMPLE_RESOLUTION = 8
 ) (
@@ -24,9 +24,11 @@ module ttl2nim_subsampler #(
     input signed [13:0] ttl_i,
     output signed [13:0] nim_o
 );
+    localparam signed [13:0] NIM_HI   = `LVL_NIM_HI,
+                             NIM_LO   = `LVL_NIM_LO,
+                             NIM_SPAN = NIM_HI - NIM_LO;
     localparam LATENCY = 5;  // the module delays signal by this many ticks
     localparam FRACTION_BITS = 14;  // how many bits numerator & denominator contains
-    localparam signed [13:0] NIM_SPAN = NIM_HI - NIM_LO;
 
     // Abbreviations
     localparam RR = RECIP_RESOLUTION;
