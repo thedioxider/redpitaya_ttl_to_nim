@@ -39,6 +39,7 @@ module ttl2nim_subsampler #(
     assign nim_o = nim_level;
 
     // -- PREPROCESSING: precompute reciprocal table
+    (* ram_style = "block" *)
     reg [RR:0] recip_rom [0:(1 << FB) - 1];
     integer i;
     initial begin
