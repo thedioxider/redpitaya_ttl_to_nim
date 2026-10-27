@@ -50,7 +50,7 @@ module ttl2nim_subsampler #(
     // -- STAGE 0: update samples, compare them against threshold
     wire signed [13:0] ttl_sample, ttl_thr;
     wire ttl_high, ttl_edge;
-    ttl_signal (
+    ttl_signal ttl_signal_i (
         .clk(clk), .sample_i(ttl_i),
         .sample_o(ttl_sample), .thr_o(ttl_thr),
         .high_o(ttl_high), .edge_o(ttl_edge)

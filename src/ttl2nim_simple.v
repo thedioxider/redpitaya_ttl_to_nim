@@ -25,6 +25,6 @@ module ttl2nim_simple(
                              NIM_LO = `LVL_NIM_LO;
 
     wire ttl_high;
-    ttl_signal (.clk(clk), .sample_i(ttl_i), .high_o(ttl_high));
+    ttl_signal ttl_signal_i (.clk(clk), .sample_i(ttl_i), .high_o(ttl_high));
     assign nim_o = ttl_high ? NIM_HI : NIM_LO;
 endmodule
