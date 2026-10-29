@@ -6,6 +6,7 @@
     <title>TTL2NIM</title>
     <link rel="icon" href="info/icon.png" />
     <link rel="stylesheet" href="css/style.css" />
+    <script src="js/theme.js"></script>
     <!-- Shared by the stock apps -->
     <script src="../assets/pako.js"></script>
     <script type="module" src="js/app.js"></script>
@@ -16,6 +17,11 @@
       <span id="status" class="status" data-state="connecting"
         >Connecting…</span
       >
+      <button id="theme" class="theme" type="button" aria-label="Toggle theme">
+        <svg aria-hidden="true">
+          <use href="assets/theme.svg#icon" />
+        </svg>
+      </button>
     </header>
     <main>
       <section class="delay">

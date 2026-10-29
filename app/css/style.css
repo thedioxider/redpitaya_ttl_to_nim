@@ -4,8 +4,8 @@
   --fg: #1d1d1f;
   --muted: #6e6e73;
   --line: #d2d2d7;
-  --accent: #e8590c;
-  --ok: #2f9e44;
+  --accent: #0bd06a;
+  --ok: #28de4a;
   --wait: #f08c00;
   --off: #adb5bd;
   font-family:
@@ -16,8 +16,9 @@
     sans-serif;
 }
 
+/* The theme button sets data-theme; without it, the system theme applies. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #161618;
     --fg: #f5f5f7;
     --muted: #98989d;
@@ -26,8 +27,30 @@
   }
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161618;
+  --fg: #f5f5f7;
+  --muted: #98989d;
+  --line: #3a3a3c;
+  --off: #636366;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 * {
   box-sizing: border-box;
+}
+
+/* Fade theme switches. */
+*,
+*::before {
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
 }
 
 body {
@@ -41,7 +64,7 @@ body {
 header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--line);
 }
@@ -53,6 +76,7 @@ h1 {
 }
 
 .status {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -74,6 +98,24 @@ h1 {
 
 .status[data-state="connecting"]::before {
   background: var(--wait);
+}
+
+.theme {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.theme svg {
+  width: 16px;
+  height: 16px;
 }
 
 main {
