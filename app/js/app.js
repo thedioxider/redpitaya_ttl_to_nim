@@ -20,7 +20,7 @@ const sliders = {
 const params = {};
 let socket = null;
 let connected = false;
-let connecting = false;
+let attaching = false;
 let running = null;
 
 async function fetchRunning() {
@@ -52,13 +52,11 @@ function send(name, value) {
 
 // Resolves true once the controller has sent TICK_PS, false if the socket fails or times out.
 function connect() {
-  connecting = true;
   return new Promise((resolve) => {
     const ws = new WebSocket(SOCKET_URL);
     ws.binaryType = "arraybuffer";
     const settle = (ok) => {
       clearTimeout(timer);
-      connecting = false;
       if (!ok) ws.close();
       resolve(ok);
     };
@@ -99,7 +97,7 @@ function connect() {
 function render() {
   const ready = running === true && connected;
   const state =
-    running === null || connecting
+    running === null || attaching
       ? "connecting"
       : ready
         ? "running"
@@ -150,9 +148,24 @@ function bindSlider(name, slider) {
   });
 }
 
+// Connects to our controller, (re)starting the app if it's gone.
+async function attach() {
+  attaching = true;
+  render();
+  if (!(running && (await connect()))) {
+    await startApp();
+    running = await fetchRunning();
+    if (running) await connect();
+  }
+  attaching = false;
+  render();
+}
+
 async function poll() {
   running = await fetchRunning();
-  if (running && !connected && !connecting) await connect();
+  // Our bitstream with no controller: a page disconnected, and Red Pitaya's WebSocket server
+  // exits the controller on any disconnect. Another bitstream means another app was opened.
+  if (running && !connected && !attaching) await attach();
   render();
   setTimeout(poll, STATUS_POLL_MS);
 }
@@ -163,13 +176,7 @@ async function main() {
   render();
 
   running = await fetchRunning();
-  // Reattach to a running controller; otherwise (re)start the app, which reloads the FPGA.
-  if (!(running && (await connect()))) {
-    await startApp();
-    running = await fetchRunning();
-    if (running) await connect();
-  }
-  render();
+  await attach();
   setTimeout(poll, STATUS_POLL_MS);
 }
 
