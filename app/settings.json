@@ -1,0 +1,6 @@
+{
+    "save_delay_s": {
+        "default": 30,
+        "description": "How long after the last change to persist delays, in seconds"
+    }
+}

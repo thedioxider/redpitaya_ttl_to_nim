@@ -1,0 +1,29 @@
+// Device tree overlay applied together with the bitstream (fpgautil -o).
+// Template: build_app.sh fills the @...@ placeholders from design.info.
+/dts-v1/;
+/plugin/;
+
+/ {
+    // Programs the bitstream: the kernel loads this file from /lib/firmware,
+    // where fpgautil copies the bitstream under its own file name.
+    fragment@0 {
+        target = <&fpga_full>;
+        __overlay__ {
+            firmware-name = "@NAME@.bit.bin";
+        };
+    };
+
+    // Exposes the delay GPIO as /dev/uioN, named after the design.
+    fragment@1 {
+        target = <&amba>;
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <1>;
+
+            @NAME@@@GPIO_UNIT@ {
+                compatible = "generic-uio";
+                reg = <@GPIO_ADDR@ @GPIO_SIZE@>;
+            };
+        };
+    };
+};
