@@ -13,8 +13,9 @@ Project created for Vivado 2025.2.
 | `constraints/`         | XDC constraints                                       |
 | `recreate_project.tcl` | Project settings + block design, exported from Vivado |
 | `export_project.tcl`   | Regenerates `recreate_project.tcl`                    |
+| `redpitaya_genbin.sh`  | Converts Vivado's `.bit` into Red Pitaya's `.bit.bin` |
 
-The Vivado project is generated into `build/`.
+The Vivado project is generated into `build/`. Generated bitstreams go to `out/`.
 
 ### Restore the project
 
@@ -48,15 +49,15 @@ source -notrace [get_property DIRECTORY [current_project]]/../export_project.tcl
 ### How to run on Red Pitaya
 
 1. In Vivado, run implementation, then generate bitstream.
-2. Use `./redpitaya_genbin.sh ./build/path/to/<top_module_name>` to convert `.bit` implementation file to `.bit.bin` bitstream format. You will find the output file in the same directory.
-   - Don't specify implementation's extension. For example, if you need to convert `ttl_to_nim_wrapper.bit`, the path should end just with `ttl_to_nim_wrapper`.
-   - Implementation output path should be `./build/redpitaya_ttl_to_nim.runs/impl_1/`.
-   - Ensure that `bootgen` is in the PATH.
+2. Convert the `.bit` implementation file to the `.bit.bin` bitstream format with `./redpitaya_genbin.sh`:
+   - Without arguments, it finds the bitstream in `./build/redpitaya_ttl_to_nim.runs/impl_*/` and writes `./out/ttl2nim.bit.bin`.
+   - With a path, e.g. `./redpitaya_genbin.sh ./build/path/to/<top_module_name>`, it writes `<top_module_name>.bit.bin` next to the `.bit`.
+   - Ensure that `bootgen` is in the PATH. It ships with Vivado/Vitis.
 3. Copy the bitstream file to Red Pitaya. For example:
    ```sh
-   scp ./build/redpitaya_ttl_to_nim.runs/impl_1/<top_module_name>.bit.bin root@rp-xxxxxx.local:/tmp/<top_module_name>.bit.bin
+   scp ./out/ttl2nim.bit.bin root@rp-xxxxxx.local:/tmp/ttl2nim.bit.bin
    ```
 4. On Red Pitaya, run:
    ```sh
-   fpgautil -b /tmp/<top_module_name>.bit.bin
+   fpgautil -b /tmp/ttl2nim.bit.bin
    ```
