@@ -35,6 +35,8 @@ std::mutex mutex;
 bool design_ok = false;
 Design design;
 Gpio gpio;
+// Also destroyed at exit(): the WebSocket server exits the process when a page disconnects,
+// without calling rp_app_exit.
 std::unique_ptr<DelaySaver> saver;
 uint64_t last_check_ms = 0;
 
@@ -118,7 +120,6 @@ extern "C" int rp_app_init(void) {
 
 extern "C" int rp_app_exit(void) {
     std::lock_guard<std::mutex> lock(mutex);
-    if (saver) saver->flush();
     saver.reset();
     gpio.close();
     return 0;

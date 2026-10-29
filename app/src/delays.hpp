@@ -18,9 +18,13 @@ Delays load_delays(const std::string& path, const Design& design);
 
 // Saves delays a while after the last change rather than on every slider move, to spare the
 // SD card. A save is skipped if nothing changed since the last one.
+// A pending change is saved on destruction.
 class DelaySaver {
 public:
     DelaySaver(std::string path, Delays saved, uint32_t delay_s);
+    ~DelaySaver() { flush(); }
+    DelaySaver(const DelaySaver&) = delete;
+    DelaySaver& operator=(const DelaySaver&) = delete;
 
     void changed(const Delays& delays, uint64_t now_ms);  // (re)starts the wait
     void tick(uint64_t now_ms);                           // saves once the wait is over
