@@ -1,0 +1,6 @@
+{
+    "name": "TTL2NIM",
+    "version": "0.1.0",
+    "revision": "REVISION",
+    "description": "TTL to NIM converter with adjustable delay"
+}

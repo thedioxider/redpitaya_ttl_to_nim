@@ -19,14 +19,17 @@ OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 all: ../controllerhf.so ../$(NAME).dtbo
 
 ../controllerhf.so: $(OBJECTS)
-	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
+	@echo "  LD   controllerhf.so"
+	@$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
 %.o: %.cpp $(wildcard *.hpp)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@echo "  CXX  $<"
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 ../$(NAME).dtbo: ../$(NAME).dtso
 	@command -v dtc > /dev/null || { echo "dtc not found on the board" >&2; exit 1; }
-	dtc -@ -I dts -O dtb -o $@ $<
+	@echo "  DTC  $(NAME).dtbo"
+	@dtc -@ -I dts -O dtb -o $@ $<
 
 clean:
 	rm -f *.o ../controllerhf.so ../$(NAME).dtbo

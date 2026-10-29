@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
-# Builds the TTL2NIM app's generated files into out/.
+# Builds the TTL2NIM app into out/ttl2nim/, ready to install, and offers to install it.
+# Besides app/ sources, the folder gets generated files:
+#   - <name>.bit.bin              bitstream (via redpitaya_genbin.sh)
+#   - <name>.dtso                 device tree overlay, filled from design.info (compiled on the board)
+#   - settings.conf               default settings file, every key commented at its default
+#   - src/settings_defaults.hpp   the same defaults, compiled into the controller
 #
-# Usage: build_app.sh
-#   - out/<name>.bit.bin          bitstream (via redpitaya_genbin.sh)
-#   - out/<name>.dtso             device tree overlay, filled from design.info (compiled on the board)
-#   - out/settings.conf           default settings file, every key commented at its default
-#   - out/settings_defaults.hpp   the same defaults, compiled into the controller
+# Usage: build_app.sh [--no-install]
 # Requires jq, and bootgen for redpitaya_genbin.sh.
 set -euo pipefail
+
+ask_install=true
+for arg in "$@"; do
+    case $arg in
+        --no-install) ask_install=false ;;
+        *) echo "Unknown argument: $arg" >&2; exit 1 ;;
+    esac
+done
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 . "$repo/lib/conf_get.sh"
@@ -53,15 +62,21 @@ errors=$(jq -r '
 ' "$settings") || fail "Can't parse $settings"
 [[ -z $errors ]] || fail "Invalid $settings:"$'\n'"$errors"
 
+stage="$out/ttl2nim"
+if [[ -d $stage ]]; then
+    rm -r "$stage"
+fi
+mkdir -p "$stage/info" "$stage/src"
+
 "$repo/redpitaya_genbin.sh"
+cp "$out/$name.bit.bin" "$stage/"
 
 # -- Device tree overlay: the unit address is the hex address without 0x and leading zeros.
 sed -e "s/@NAME@/$name/g" \
     -e "s/@GPIO_UNIT@/$(printf '%x' "$((gpio_addr))")/g" \
     -e "s/@GPIO_ADDR@/$gpio_addr/g" \
     -e "s/@GPIO_SIZE@/$gpio_size/g" \
-    "$repo/app/overlay.dtso" > "$out/$name.dtso"
-echo "Wrote $out/$name.dtso"
+    "$repo/app/overlay.dtso" > "$stage/$name.dtso"
 
 # -- Settings
 {
@@ -72,8 +87,7 @@ echo "Wrote $out/$name.dtso"
     jq -r 'to_entries[]
         | "# \(.key)=\(.value.default | tostring)"
           + (.value.description // "" | if . == "" then "" else "   # " + . end)' "$settings"
-} > "$out/settings.conf"
-echo "Wrote $out/settings.conf"
+} > "$stage/settings.conf"
 
 {
     echo "// Generated from app/settings.json by build_app.sh. Do not edit."
@@ -92,5 +106,31 @@ echo "Wrote $out/settings.conf"
         echo "};"
         echo "static const size_t kSettingDefaultsCount = sizeof(kSettingDefaults) / sizeof(kSettingDefaults[0]);"
     fi
-} > "$out/settings_defaults.hpp"
-echo "Wrote $out/settings_defaults.hpp"
+} > "$stage/src/settings_defaults.hpp"
+
+# -- App sources, from explicit lists so nothing else ends up on the board.
+app_files=(
+    info/info.json info/icon.png
+    fpga.sh nginx.conf install.sh
+    src/Makefile
+)
+for f in "${app_files[@]}"; do
+    [[ -f $repo/app/$f ]] || fail "Missing app/$f"
+    cp "$repo/app/$f" "$stage/$f"
+done
+cp "$repo"/app/src/*.cpp "$repo"/app/src/*.hpp "$stage/src/"
+cp "$design" "$repo/lib/conf_get.sh" "$stage/"
+
+# Bazaar only runs fpga.sh if fpga.conf isn't empty; it historically held the bitstream path.
+echo "/opt/redpitaya/www/apps/ttl2nim/$name.bit.bin" > "$stage/fpga.conf"
+revision=$(git -C "$repo" rev-parse --short HEAD 2> /dev/null || echo unknown)
+sed -i.bak "s/REVISION/$revision/" "$stage/info/info.json" && rm "$stage/info/info.json.bak"
+echo "Staged $stage"
+
+if [[ $ask_install == true ]]; then
+    host=
+    read -rp "Install to a board now? Board address (empty to skip): " host || true
+    if [[ -n $host ]]; then
+        "$stage/install.sh" "$host"
+    fi
+fi
