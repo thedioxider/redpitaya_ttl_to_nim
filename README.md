@@ -7,13 +7,14 @@ Project created for Vivado 2025.2.
 
 ### Layout
 
-| Path                   | Contents                                              |
-| ---------------------- | ----------------------------------------------------- |
-| `src/`                 | Verilog sources                                       |
-| `constraints/`         | XDC constraints                                       |
-| `recreate_project.tcl` | Project settings + block design, exported from Vivado |
-| `export_project.tcl`   | Regenerates `recreate_project.tcl`                    |
-| `redpitaya_genbin.sh`  | Converts Vivado's `.bit` into Red Pitaya's `.bit.bin` |
+| Path                   | Contents                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| `src/`                 | Verilog sources                                                                                      |
+| `constraints/`         | XDC constraints                                                                                      |
+| `recreate_project.tcl` | Project settings + block design, exported from Vivado                                                |
+| `export_project.tcl`   | Regenerates `recreate_project.tcl`                                                                   |
+| `redpitaya_genbin.sh`  | Converts Vivado's `.bit` into Red Pitaya's `.bit.bin`                                                |
+| `design.info`          | Facts about the FPGA design (name, delay widths, GPIO address); change only together with the design |
 
 The Vivado project is generated into `build/`. Generated bitstreams go to `out/`.
 
@@ -50,7 +51,7 @@ source -notrace [get_property DIRECTORY [current_project]]/../export_project.tcl
 
 1. In Vivado, run implementation, then generate bitstream.
 2. Convert the `.bit` implementation file to the `.bit.bin` bitstream format with `./redpitaya_genbin.sh`:
-   - Without arguments, it finds the bitstream in `./build/redpitaya_ttl_to_nim.runs/impl_*/` and writes `./out/ttl2nim.bit.bin`.
+   - Without arguments, it finds the bitstream in `./build/redpitaya_ttl_to_nim.runs/impl_*/` and writes `./out/<name>.bit.bin`, with `<name>` from `design.info`.
    - With a path, e.g. `./redpitaya_genbin.sh ./build/path/to/<top_module_name>`, it writes `<top_module_name>.bit.bin` next to the `.bit`.
    - Ensure that `bootgen` is in the PATH. It ships with Vivado/Vitis.
 3. Copy the bitstream file to Red Pitaya. For example:
