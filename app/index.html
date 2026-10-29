@@ -29,32 +29,64 @@
         <output id="coarse-value" for="coarse"
           ><span class="time">–</span><span class="steps">–</span></output
         >
-        <input
-          id="coarse"
-          type="range"
-          autocomplete="off"
-          min="0"
-          max="0"
-          value="0"
-          disabled
-          aria-labelledby="coarse-scale"
-        />
+        <div class="control">
+          <input
+            id="coarse"
+            type="range"
+            autocomplete="off"
+            min="0"
+            max="0"
+            value="0"
+            disabled
+            aria-labelledby="coarse-scale"
+          />
+          <div class="nudge">
+            <button class="step" type="button" data-step="-16" disabled aria-label="Coarse −16 steps">
+              <svg aria-hidden="true"><use href="assets/arrow.svg#many" /></svg>
+            </button>
+            <button class="step" type="button" data-step="-1" disabled aria-label="Coarse −1 step">
+              <svg aria-hidden="true"><use href="assets/arrow.svg#one" /></svg>
+            </button>
+            <button class="step" type="button" data-step="1" disabled aria-label="Coarse +1 step">
+              <svg aria-hidden="true"><use href="assets/arrow.svg#one" /></svg>
+            </button>
+            <button class="step" type="button" data-step="16" disabled aria-label="Coarse +16 steps">
+              <svg aria-hidden="true"><use href="assets/arrow.svg#many" /></svg>
+            </button>
+          </div>
+        </div>
       </section>
       <section class="delay">
         <h2 id="fine-scale">Fine</h2>
         <output id="fine-value" for="fine"
           ><span class="time">–</span><span class="steps">–</span></output
         >
-        <input
-          id="fine"
-          type="range"
-          autocomplete="off"
-          min="0"
-          max="0"
-          value="0"
-          disabled
-          aria-labelledby="fine-scale"
-        />
+        <div class="control">
+          <input
+            id="fine"
+            type="range"
+            autocomplete="off"
+            min="0"
+            max="0"
+            value="0"
+            disabled
+            aria-labelledby="fine-scale"
+          />
+          <div class="nudge">
+            <button class="step" type="button" data-step="-16" disabled aria-label="Fine −16 steps">
+              <svg aria-hidden="true"><use href="assets/arrow.svg#many" /></svg>
+            </button>
+            <button class="step" type="button" data-step="-1" disabled aria-label="Fine −1 step">
+              <svg aria-hidden="true"><use href="assets/arrow.svg#one" /></svg>
+            </button>
+            <button class="step" type="button" data-step="1" disabled aria-label="Fine +1 step">
+              <svg aria-hidden="true"><use href="assets/arrow.svg#one" /></svg>
+            </button>
+            <button class="step" type="button" data-step="16" disabled aria-label="Fine +16 steps">
+              <svg aria-hidden="true"><use href="assets/arrow.svg#many" /></svg>
+            </button>
+          </div>
+        </div>
       </section>
     </main>
   </body>

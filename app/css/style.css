@@ -4,7 +4,10 @@
   --fg: #1d1d1f;
   --muted: #6e6e73;
   --line: #d2d2d7;
-  --accent: #0bd06a;
+  --accent: #0dc47d;
+  /* Step buttons: green on a grey fill reads poorly in the light theme, so it's outlined. */
+  --step-bg: none;
+  --step-border: var(--line);
   --ok: #28de4a;
   --wait: #f08c00;
   --off: #adb5bd;
@@ -19,6 +22,8 @@
 /* The theme button sets data-theme; without it, the system theme applies. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --step-bg: var(--line);
+    --step-border: transparent;
     --bg: #161618;
     --fg: #f5f5f7;
     --muted: #98989d;
@@ -29,6 +34,8 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --step-bg: var(--line);
+  --step-border: transparent;
   --bg: #161618;
   --fg: #f5f5f7;
   --muted: #98989d;
@@ -105,7 +112,8 @@ h1 {
   background: var(--wait);
 }
 
-.theme {
+.theme,
+.step {
   display: grid;
   place-items: center;
   width: 32px;
@@ -118,9 +126,49 @@ h1 {
   cursor: pointer;
 }
 
-.theme svg {
+.theme svg,
+.step svg {
   width: 16px;
   height: 16px;
+}
+
+.step {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--step-border);
+  background: var(--step-bg);
+  color: var(--accent);
+}
+
+.step svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Grey like the disabled sliders. */
+.step:disabled {
+  color: var(--off);
+  cursor: default;
+}
+
+/* The icons point forward; decreasing ones point back. */
+.step[data-step^="-"] svg {
+  transform: rotate(180deg);
+}
+
+.control {
+  display: grid;
+  gap: 4px;
+}
+
+/* Decrease buttons at the start, increase buttons at the end. */
+.nudge {
+  display: flex;
+  gap: 8px;
+}
+
+.nudge [data-step="1"] {
+  margin-inline-start: auto;
 }
 
 main {
@@ -155,8 +203,8 @@ output {
 input[type="range"] {
   --fill: 0%;
   --fill-dir: to right;
-  --track: 6px;
-  --thumb: 22px;
+  --track: 8px;
+  --thumb: 24px;
   -webkit-appearance: none; /* Safari < 15.4 */
   appearance: none;
   inline-size: 100%;
@@ -230,11 +278,35 @@ input[type="range"]::-moz-range-thumb {
     content: none;
   }
 
+  /* Buttons in a column beside the slider: increase at the top, decrease at the bottom. */
+  :root:not(.no-vertical-sliders) .control {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
   :root:not(.no-vertical-sliders) input[type="range"] {
     --fill-dir: to top;
     writing-mode: vertical-lr;
     direction: rtl;
-    inline-size: 60vh;
-    margin: 16px 0 0;
+    inline-size: 52vh;
+    margin: 0;
+  }
+
+  :root:not(.no-vertical-sliders) .nudge {
+    flex-direction: column-reverse;
+  }
+
+  :root:not(.no-vertical-sliders) .nudge [data-step="1"] {
+    margin-inline-start: 0;
+    margin-block-end: auto;
+  }
+
+  :root:not(.no-vertical-sliders) .step svg {
+    transform: rotate(-90deg);
+  }
+
+  :root:not(.no-vertical-sliders) .step[data-step^="-"] svg {
+    transform: rotate(90deg);
   }
 }

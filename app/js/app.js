@@ -113,6 +113,7 @@ function render() {
 
   for (const [name, slider] of Object.entries(sliders)) {
     slider.input.disabled = !ready;
+    for (const button of slider.buttons) button.disabled = !ready;
     if (!("TICK_PS" in params)) continue;
     const bits = params[slider.bitsParam];
     const step = perStepPs(name);
@@ -167,6 +168,21 @@ function bindSlider(name, slider) {
     slider.dragging = false;
     flush();
   });
+
+  slider.buttons = slider.input.parentElement.querySelectorAll(".step");
+  for (const button of slider.buttons) {
+    button.addEventListener("click", () => {
+      const current = Number(slider.input.value);
+      const value = Math.min(
+        Math.max(current + Number(button.dataset.step), Number(slider.input.min)),
+        Number(slider.input.max),
+      );
+      if (value === current) return;
+      slider.input.value = value;
+      showFill(slider.input);
+      flush();
+    });
+  }
 }
 
 // Connects to our controller, (re)starting the app if it's gone.
