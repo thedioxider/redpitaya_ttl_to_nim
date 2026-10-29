@@ -16,7 +16,7 @@ LDFLAGS = -shared -L$(INSTALL_DIR)/rp_sdk -L$(INSTALL_DIR)/lib -Wl,-rpath,$(INST
 
 OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
-all: ../controllerhf.so ../$(NAME).dtbo
+all: ../controllerhf.so ../$(NAME).dtbo ../$(NAME)_uio.dtbo
 
 ../controllerhf.so: $(OBJECTS)
 	@echo "  LD   controllerhf.so"
@@ -26,12 +26,11 @@ all: ../controllerhf.so ../$(NAME).dtbo
 	@echo "  CXX  $<"
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
-../$(NAME).dtbo: ../$(NAME).dtso
+../%.dtbo: ../%.dtso
 	@command -v dtc > /dev/null || { echo "dtc not found on the board" >&2; exit 1; }
-	@echo "  DTC  $(NAME).dtbo"
+	@echo "  DTC  $*.dtbo"
 	@dtc -@ -I dts -O dtb -o $@ $<
-
 clean:
-	rm -f *.o ../controllerhf.so ../$(NAME).dtbo
+	rm -f *.o ../controllerhf.so ../$(NAME).dtbo ../$(NAME)_uio.dtbo
 
 .PHONY: all clean

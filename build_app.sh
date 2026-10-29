@@ -2,7 +2,8 @@
 # Builds the TTL2NIM app into out/ttl2nim/, ready to install, and offers to install it.
 # Besides app/ sources, the folder gets generated files:
 #   - <name>.bit.bin              bitstream (via redpitaya_genbin.sh)
-#   - <name>.dtso                 device tree overlay, filled from design.info (compiled on the board)
+#   - <name>.dtso                 device tree overlay with the bitstream, and
+#   - <name>_uio.dtso             the UIO node alone; filled from design.info (compiled on the board)
 #   - settings.conf               default settings file, every key commented at its default
 #   - src/settings_defaults.hpp   the same defaults, compiled into the controller
 #
@@ -71,12 +72,14 @@ mkdir -p "$stage/info" "$stage/src" "$stage/css" "$stage/js" "$stage/assets"
 "$repo/redpitaya_genbin.sh"
 cp "$out/$name.bit.bin" "$stage/"
 
-# -- Device tree overlay: the unit address is the hex address without 0x and leading zeros.
-sed -e "s/@NAME@/$name/g" \
-    -e "s/@GPIO_UNIT@/$(printf '%x' "$((gpio_addr))")/g" \
-    -e "s/@GPIO_ADDR@/$gpio_addr/g" \
-    -e "s/@GPIO_SIZE@/$gpio_size/g" \
-    "$repo/app/overlay.dtso" > "$stage/$name.dtso"
+# -- Device tree overlays: the unit address is the hex address without 0x and leading zeros.
+for overlay in overlay:"$name" overlay_uio:"${name}_uio"; do
+    sed -e "s/@NAME@/$name/g" \
+        -e "s/@GPIO_UNIT@/$(printf '%x' "$((gpio_addr))")/g" \
+        -e "s/@GPIO_ADDR@/$gpio_addr/g" \
+        -e "s/@GPIO_SIZE@/$gpio_size/g" \
+        "$repo/app/${overlay%%:*}.dtso" > "$stage/${overlay#*:}.dtso"
+done
 
 # -- Settings
 {

@@ -1,0 +1,21 @@
+// Device tree overlay exposing the delay GPIO as /dev/uioN, named after the design.
+// fpga.sh applies it instead of overlay.dtso when our bitstream is still loaded.
+// Same fragment as in overlay.dtso.
+// Template: build_app.sh fills the @...@ placeholders from design.info.
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@1 {
+        target = <&amba>;
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <1>;
+
+            @NAME@@@GPIO_UNIT@ {
+                compatible = "generic-uio";
+                reg = <@GPIO_ADDR@ @GPIO_SIZE@>;
+            };
+        };
+    };
+};
