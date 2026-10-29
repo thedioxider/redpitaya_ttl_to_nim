@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TTL2NIM</title>
+    <link rel="icon" href="info/icon.png" />
+    <link rel="stylesheet" href="css/style.css" />
+    <!-- Shared by the stock apps -->
+    <script src="../assets/pako.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>TTL2NIM</h1>
+      <span id="status" class="status" data-state="connecting"
+        >Connecting…</span
+      >
+    </header>
+    <main>
+      <section class="delay">
+        <h2 id="coarse-scale">Coarse</h2>
+        <output id="coarse-value" for="coarse">–</output>
+        <input
+          id="coarse"
+          type="range"
+          min="0"
+          max="0"
+          value="0"
+          disabled
+          aria-labelledby="coarse-scale"
+        />
+      </section>
+      <section class="delay">
+        <h2 id="fine-scale">Fine</h2>
+        <output id="fine-value" for="fine">–</output>
+        <input
+          id="fine"
+          type="range"
+          min="0"
+          max="0"
+          value="0"
+          disabled
+          aria-labelledby="fine-scale"
+        />
+      </section>
+    </main>
+  </body>
+</html>

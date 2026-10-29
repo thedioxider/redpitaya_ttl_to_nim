@@ -66,7 +66,7 @@ stage="$out/ttl2nim"
 if [[ -d $stage ]]; then
     rm -r "$stage"
 fi
-mkdir -p "$stage/info" "$stage/src"
+mkdir -p "$stage/info" "$stage/src" "$stage/css" "$stage/js"
 
 "$repo/redpitaya_genbin.sh"
 cp "$out/$name.bit.bin" "$stage/"
@@ -111,6 +111,7 @@ sed -e "s/@NAME@/$name/g" \
 # -- App sources, from explicit lists so nothing else ends up on the board.
 app_files=(
     info/info.json info/icon.png
+    index.html css/style.css js/app.js js/format.js
     fpga.sh nginx.conf install.sh
     src/Makefile
 )
