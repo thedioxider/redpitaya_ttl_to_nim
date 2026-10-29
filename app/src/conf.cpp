@@ -1,5 +1,8 @@
 #include "conf.hpp"
 
+#include <sys/stat.h>
+
+#include <cstdio>
 #include <fstream>
 
 namespace {
@@ -63,6 +66,20 @@ std::vector<std::string> read_lines(const std::string& path) {
         lines.push_back(line);
     }
     return lines;
+}
+
+bool write_lines(const std::string& path, const std::vector<std::string>& lines) {
+    for (size_t i = path.find('/', 1); i != std::string::npos; i = path.find('/', i + 1)) {
+        mkdir(path.substr(0, i).c_str(), 0755);
+    }
+
+    std::string tmp = path + ".tmp";
+    {
+        std::ofstream file(tmp);
+        for (const std::string& line : lines) file << line << '\n';
+        if (!file.flush()) return false;
+    }
+    return std::rename(tmp.c_str(), path.c_str()) == 0;
 }
 
 std::map<std::string, std::string> read_conf(const std::string& path) {

@@ -1,9 +1,6 @@
 #include "delays.hpp"
 
-#include <sys/stat.h>
-
 #include <cstdio>
-#include <fstream>
 #include <map>
 
 #include "conf.hpp"
@@ -16,12 +13,6 @@ uint32_t saved_steps(const std::map<std::string, std::string>& values, const std
     uint32_t steps = 0;
     if (it == values.end() || !parse_uint(it->second, steps)) return 0;
     return clamp_steps(steps, bits);
-}
-
-void make_dirs(const std::string& path) {
-    for (size_t i = path.find('/', 1); i != std::string::npos; i = path.find('/', i + 1)) {
-        mkdir(path.substr(0, i).c_str(), 0755);
-    }
 }
 
 }  // namespace
@@ -53,22 +44,13 @@ void DelaySaver::save() {
     armed_ = false;
     if (pending_ == saved_) return;
 
-    // Written to a temp file and renamed over the old one, so a power loss mid-write can't
-    // leave a truncated file.
-    make_dirs(path_);
-    std::string tmp = path_ + ".tmp";
-    {
-        std::ofstream file(tmp);
-        file << "# Last delays set in the app, restored when it loads.\n"
-             << "coarse = " << pending_.coarse << "\n"
-             << "fine = " << pending_.fine << "\n";
-        if (!file.flush()) {
-            std::fprintf(stderr, "ttl2nim: can't write %s\n", tmp.c_str());
-            return;
-        }
-    }
-    if (std::rename(tmp.c_str(), path_.c_str()) != 0) {
-        std::fprintf(stderr, "ttl2nim: can't replace %s\n", path_.c_str());
+    bool ok = write_lines(path_, {
+        "# Last delays set in the app, restored when it loads.",
+        "coarse = " + std::to_string(pending_.coarse),
+        "fine = " + std::to_string(pending_.fine),
+    });
+    if (!ok) {
+        std::fprintf(stderr, "ttl2nim: can't write %s\n", path_.c_str());
         return;
     }
     saved_ = pending_;

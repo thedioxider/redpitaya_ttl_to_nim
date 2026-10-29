@@ -21,6 +21,9 @@ ConfLine parse_conf_line(std::string line);
 // The file's lines without line endings; empty if it can't be read.
 std::vector<std::string> read_lines(const std::string& path);
 
+// Atomic write (temp file + rename); creates missing directories.
+bool write_lines(const std::string& path, const std::vector<std::string>& lines);
+
 // The file's settings, the last one winning for repeated keys; empty if it can't be read.
 std::map<std::string, std::string> read_conf(const std::string& path);
 
