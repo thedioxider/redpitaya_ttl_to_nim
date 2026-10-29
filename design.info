@@ -1,0 +1,10 @@
+# Describes the FPGA design built from this repo.
+# These are facts about the Vivado design, not options: change them only together with it.
+# Format: key = value, one per line; # starts a comment.
+
+name        = ttl2nim     # bitstream/overlay file names, firmware-name, UIO node, loaded-FPGA marker
+tick_ps     = 8000        # one coarse delay step: a clock period of the delay logic (125 MHz)
+coarse_bits = 10          # coarse delay width, register bits
+fine_bits   = 8           # fine delay width, register bits
+gpio_addr   = 0x41200000  # AXI GPIO base address
+gpio_size   = 0x10000     # AXI GPIO address range

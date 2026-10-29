@@ -3,11 +3,12 @@
 #
 # Usage: redpitaya_genbin.sh [PATH]
 #   PATH  bitstream, with or without .bit; writes PATH.bit.bin next to it
-#   none  finds Vivado's bitstream under build/ and writes out/ttl2nim.bit.bin
+#   none  finds Vivado's bitstream under build/ and writes out/<name>.bit.bin,
+#         with <name> taken from design.info
 set -euo pipefail
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-auto_out="$repo/out/ttl2nim.bit.bin"
+. "$repo/lib/conf_get.sh"
 
 if ! command -v bootgen > /dev/null; then
     echo "bootgen not found. It ships with Vivado/Vitis: source their settings64.sh first." >&2
@@ -55,9 +56,13 @@ if (($# > 0)); then
     bit=${1%.bit}.bit
     out=${bit}.bin
 else
+    if ! name=$(conf_get "$repo/design.info" name); then
+        echo "No name in $repo/design.info" >&2
+        exit 1
+    fi
     find_bit
     bit=${bit%.bit}.bit
-    out=$auto_out
+    out="$repo/out/$name.bit.bin"
     mkdir -p "$(dirname "$out")"
 fi
 

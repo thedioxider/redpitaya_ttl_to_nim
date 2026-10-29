@@ -1,0 +1,312 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fafafa;
+  --fg: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #d2d2d7;
+  --accent: #0dc47d;
+  /* Step buttons: green on a grey fill reads poorly in the light theme, so it's outlined. */
+  --step-bg: none;
+  --step-border: var(--line);
+  --ok: #28de4a;
+  --wait: #f08c00;
+  --off: #adb5bd;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+/* The theme button sets data-theme; without it, the system theme applies. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --step-bg: var(--line);
+    --step-border: transparent;
+    --bg: #161618;
+    --fg: #f5f5f7;
+    --muted: #98989d;
+    --line: #3a3a3c;
+    --off: #636366;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --step-bg: var(--line);
+  --step-border: transparent;
+  --bg: #161618;
+  --fg: #f5f5f7;
+  --muted: #98989d;
+  --line: #3a3a3c;
+  --off: #636366;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Fade theme switches. */
+*,
+*::before {
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh; /* excludes mobile browser bars where supported */
+  margin: 0 auto;
+  max-width: 640px;
+  padding: 24px 16px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+}
+
+.status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.status::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--off);
+}
+
+.status[data-state="running"]::before {
+  background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
+}
+
+.status[data-state="connecting"]::before {
+  background: var(--wait);
+}
+
+.theme,
+.step {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.theme svg,
+.step svg {
+  width: 16px;
+  height: 16px;
+}
+
+.step {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--step-border);
+  background: var(--step-bg);
+  color: var(--accent);
+}
+
+.step svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Grey like the disabled sliders. */
+.step:disabled {
+  color: var(--off);
+  cursor: default;
+}
+
+/* The icons point forward; decreasing ones point back. */
+.step[data-step^="-"] svg {
+  transform: rotate(180deg);
+}
+
+.control {
+  display: grid;
+  gap: 4px;
+}
+
+/* Decrease buttons at the start, zero in the middle, increase buttons at the end. */
+.nudge {
+  display: flex;
+  gap: 8px;
+}
+
+.nudge [data-value] {
+  margin-inline: auto;
+}
+
+main {
+  display: grid;
+  gap: 32px;
+  padding-top: 24px;
+}
+
+.delay {
+  display: grid;
+  gap: 6px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+output {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.steps::before {
+  content: " · ";
+}
+
+/* Custom-drawn, since the native slider's thickness can't be changed. Logical sizes keep it
+   right when vertical. */
+input[type="range"] {
+  --fill: 0%;
+  --fill-dir: to right;
+  --track: 8px;
+  --thumb: 24px;
+  -webkit-appearance: none; /* Safari < 15.4 */
+  appearance: none;
+  inline-size: 100%;
+  block-size: var(--thumb);
+  margin: 8px 0;
+  background: none;
+  cursor: pointer;
+}
+
+input[type="range"]:disabled {
+  --accent: var(--off);
+  cursor: default;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  block-size: var(--track);
+  border-radius: var(--track);
+  background: linear-gradient(var(--fill-dir), var(--accent) var(--fill), var(--line) var(--fill));
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  inline-size: var(--thumb);
+  block-size: var(--thumb);
+  margin-block-start: calc((var(--track) - var(--thumb)) / 2);
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+input[type="range"]::-moz-range-track {
+  block-size: var(--track);
+  border-radius: var(--track);
+  background: var(--line);
+}
+
+input[type="range"]::-moz-range-progress {
+  block-size: var(--track);
+  border-radius: var(--track);
+  background: var(--accent);
+}
+
+input[type="range"]::-moz-range-thumb {
+  inline-size: var(--thumb);
+  block-size: var(--thumb);
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Phone: vertical sliders, side by side (Chrome 124, Firefox 120, Safari 16.5).
+   app.js sets .no-vertical-sliders on older browsers, which keep the horizontal layout. */
+@media (max-width: 600px) {
+  :root:not(.no-vertical-sliders) main {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  :root:not(.no-vertical-sliders) .delay {
+    justify-items: center;
+    text-align: center;
+  }
+
+  :root:not(.no-vertical-sliders) output {
+    display: grid;
+    font-size: 1.125rem;
+  }
+
+  :root:not(.no-vertical-sliders) .steps::before {
+    content: none;
+  }
+
+  /* Buttons in a column beside the slider: increase at the top, decrease at the bottom. */
+  :root:not(.no-vertical-sliders) .control {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  :root:not(.no-vertical-sliders) input[type="range"] {
+    --fill-dir: to top;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    inline-size: 52vh;
+    margin: 0;
+  }
+
+  :root:not(.no-vertical-sliders) .nudge {
+    flex-direction: column-reverse;
+  }
+
+  :root:not(.no-vertical-sliders) .nudge [data-value] {
+    margin-inline: 0;
+    margin-block: auto;
+  }
+
+  :root:not(.no-vertical-sliders) .step[data-step] svg {
+    transform: rotate(-90deg);
+  }
+
+  :root:not(.no-vertical-sliders) .step[data-step^="-"] svg {
+    transform: rotate(90deg);
+  }
+}
