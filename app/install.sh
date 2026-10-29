@@ -50,21 +50,31 @@ install_remote() {
 
 # -- On the board: build next to the installed app, then swap, so a failure keeps the old one.
 install_local() {
+    command -v dtc > /dev/null || fail "dtc not found on the board."
+
+    new=$apps/.ttl2nim.new
+    was_ro=false
+    # Runs after the nginx restart: nginx holding the deleted old controller blocks a ro remount.
+    cleanup_local() {
+        # A built leftover would show up as a second app.
+        rm -rf "$new"
+        if [[ $was_ro == true ]] && ! mount -o remount,ro /opt/redpitaya; then
+            echo "Couldn't remount /opt/redpitaya read-only; it stays read-write until reboot." >&2
+        fi
+    }
+    trap cleanup_local EXIT
+
     if [[ ! -w $apps ]]; then
         local answer=
         read -rp "/opt/redpitaya is read-only. Remount it read-write for the install? [y/N] " answer || true
         [[ $answer == [yY]* ]] || fail "Not installed."
+        was_ro=true
         mount -o remount,rw /opt/redpitaya
     fi
 
-    command -v dtc > /dev/null || fail "dtc not found on the board."
-
-    new=$apps/.ttl2nim.new
     local log
     log=$(mktemp /tmp/ttl2nim-build.XXXXXX)
     rm -rf "$new"
-    # A built leftover would show up as a second app.
-    trap 'rm -rf "$new"' EXIT
     trap 'exit 129' HUP
     trap 'exit 130' INT
     trap 'exit 143' TERM
