@@ -1,6 +1,6 @@
-// JS requirement: Chrome 80, Firefox 72, Safari 13.1 (ES modules, ??)
+// JS requirement: Chrome 84, Firefox 72, Safari 13.1 (ES modules, ??, all: revert)
 
-import { maxSteps, scaleLabel, stepLabel } from "./format.js";
+import { formatTime, maxSteps, scaleLabel } from "./format.js";
 
 const APP_ID = "ttl2nim";
 const STATUS_URL = `/${APP_ID}/status`;
@@ -115,17 +115,26 @@ function render() {
     const bits = params[slider.bitsParam];
     const step = perStepPs(name);
     slider.scale.textContent = scaleLabel(slider.title, step);
-    slider.value.textContent = stepLabel(params[name], bits, step);
+    slider.time.textContent = formatTime(params[name] * step);
+    slider.steps.textContent = `${params[name]}/${maxSteps(bits)}`;
     slider.input.max = maxSteps(bits);
     if (!slider.dragging) slider.input.value = params[name];
+    showFill(slider.input);
   }
+}
+
+// WebKit has no filled-part pseudo-element; the track's gradient stops at --fill instead.
+function showFill(input) {
+  const fill = (input.value - input.min) / (input.max - input.min || 1);
+  input.style.setProperty("--fill", `${fill * 100}%`);
 }
 
 function bindSlider(name, slider) {
   const id = name.toLowerCase();
   slider.input = document.getElementById(id);
   slider.scale = document.getElementById(`${id}-scale`);
-  slider.value = document.getElementById(`${id}-value`);
+  slider.time = document.querySelector(`#${id}-value .time`);
+  slider.steps = document.querySelector(`#${id}-value .steps`);
   slider.dragging = false;
 
   let lastSent = 0;
@@ -138,6 +147,7 @@ function bindSlider(name, slider) {
   };
   slider.input.addEventListener("input", () => {
     slider.dragging = true;
+    showFill(slider.input);
     const wait = lastSent + SEND_INTERVAL_MS - Date.now();
     if (wait <= 0) flush();
     else if (!timer) timer = setTimeout(flush, wait);
@@ -170,7 +180,22 @@ async function poll() {
   setTimeout(poll, STATUS_POLL_MS);
 }
 
+// Older browsers ignore writing-mode on sliders and keep drawing them horizontally.
+function supportsVerticalSliders() {
+  const probe = document.createElement("input");
+  probe.type = "range";
+  // Native look and size, free of the page's slider styling.
+  probe.style.cssText =
+    "all: revert; position: absolute; visibility: hidden; writing-mode: vertical-lr";
+  document.body.append(probe);
+  const vertical = probe.offsetHeight > probe.offsetWidth;
+  probe.remove();
+  return vertical;
+}
+
 async function main() {
+  if (!supportsVerticalSliders())
+    document.documentElement.classList.add("no-vertical-sliders");
   for (const [name, slider] of Object.entries(sliders))
     bindSlider(name, slider);
   render();

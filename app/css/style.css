@@ -54,6 +54,11 @@
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh; /* excludes mobile browser bars where supported */
   margin: 0 auto;
   max-width: 640px;
   padding: 24px 16px;
@@ -141,37 +146,95 @@ output {
   font-variant-numeric: tabular-nums;
 }
 
+.steps::before {
+  content: " · ";
+}
+
+/* Custom-drawn, since the native slider's thickness can't be changed. Logical sizes keep it
+   right when vertical. */
 input[type="range"] {
-  width: 100%;
+  --fill: 0%;
+  --fill-dir: to right;
+  --track: 6px;
+  --thumb: 22px;
+  -webkit-appearance: none; /* Safari < 15.4 */
+  appearance: none;
+  inline-size: 100%;
+  block-size: var(--thumb);
   margin: 8px 0;
-  accent-color: var(--accent);
+  background: none;
+  cursor: pointer;
 }
 
 input[type="range"]:disabled {
-  opacity: 0.4;
+  --accent: var(--off);
+  cursor: default;
 }
 
-/* Phone: vertical sliders, side by side (Chrome 124, Firefox 120, Safari 16.5). */
+input[type="range"]::-webkit-slider-runnable-track {
+  block-size: var(--track);
+  border-radius: var(--track);
+  background: linear-gradient(var(--fill-dir), var(--accent) var(--fill), var(--line) var(--fill));
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  inline-size: var(--thumb);
+  block-size: var(--thumb);
+  margin-block-start: calc((var(--track) - var(--thumb)) / 2);
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+input[type="range"]::-moz-range-track {
+  block-size: var(--track);
+  border-radius: var(--track);
+  background: var(--line);
+}
+
+input[type="range"]::-moz-range-progress {
+  block-size: var(--track);
+  border-radius: var(--track);
+  background: var(--accent);
+}
+
+input[type="range"]::-moz-range-thumb {
+  inline-size: var(--thumb);
+  block-size: var(--thumb);
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Phone: vertical sliders, side by side (Chrome 124, Firefox 120, Safari 16.5).
+   app.js sets .no-vertical-sliders on older browsers, which keep the horizontal layout. */
 @media (max-width: 600px) {
-  main {
+  :root:not(.no-vertical-sliders) main {
     grid-template-columns: 1fr 1fr;
     gap: 16px;
   }
 
-  .delay {
+  :root:not(.no-vertical-sliders) .delay {
     justify-items: center;
     text-align: center;
   }
 
-  output {
+  :root:not(.no-vertical-sliders) output {
+    display: grid;
     font-size: 1.125rem;
   }
 
-  input[type="range"] {
+  :root:not(.no-vertical-sliders) .steps::before {
+    content: none;
+  }
+
+  :root:not(.no-vertical-sliders) input[type="range"] {
+    --fill-dir: to top;
     writing-mode: vertical-lr;
     direction: rtl;
-    width: auto;
-    height: 60vh;
+    inline-size: 60vh;
     margin: 16px 0 0;
   }
 }

@@ -4,7 +4,7 @@ const UNITS = [
   [1e6, "µs"],
 ];
 
-// 3 significant digits in ps/ns/µs, with "~" if rounded.
+// 3 significant digits in ns/µs, whole ps, with "~" if rounded.
 export function formatTime(ps) {
   let [scale, unit] = UNITS[0];
   // Pick the unit after rounding, so 999.6 ps reads "~1 ns", not "~1000 ps".
@@ -13,16 +13,13 @@ export function formatTime(ps) {
     if (rounded >= u[0]) [scale, unit] = u;
   }
   const value = ps / scale;
-  const shown = Number(value.toPrecision(3));
+  const shown =
+    unit === "ps" ? Math.round(value) : Number(value.toPrecision(3));
   return `${shown === value ? "" : "~"}${shown} ${unit}`;
 }
 
 export function maxSteps(bits) {
   return 2 ** bits - 1;
-}
-
-export function stepLabel(n, bits, perStepPs) {
-  return `${n}/${maxSteps(bits)} · ${formatTime(n * perStepPs)}`;
 }
 
 export function scaleLabel(title, perStepPs) {
