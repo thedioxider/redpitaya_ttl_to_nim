@@ -23,5 +23,5 @@ export function maxSteps(bits) {
 }
 
 export function scaleLabel(title, perStepPs) {
-  return `${title} · ${formatTime(perStepPs)}/step`;
+  return `${title}: ${formatTime(perStepPs)}/step`;
 }
