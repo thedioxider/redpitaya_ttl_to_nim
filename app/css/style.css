@@ -161,14 +161,14 @@ h1 {
   gap: 4px;
 }
 
-/* Decrease buttons at the start, increase buttons at the end. */
+/* Decrease buttons at the start, zero in the middle, increase buttons at the end. */
 .nudge {
   display: flex;
   gap: 8px;
 }
 
-.nudge [data-step="1"] {
-  margin-inline-start: auto;
+.nudge [data-value] {
+  margin-inline: auto;
 }
 
 main {
@@ -297,12 +297,12 @@ input[type="range"]::-moz-range-thumb {
     flex-direction: column-reverse;
   }
 
-  :root:not(.no-vertical-sliders) .nudge [data-step="1"] {
-    margin-inline-start: 0;
-    margin-block-end: auto;
+  :root:not(.no-vertical-sliders) .nudge [data-value] {
+    margin-inline: 0;
+    margin-block: auto;
   }
 
-  :root:not(.no-vertical-sliders) .step svg {
+  :root:not(.no-vertical-sliders) .step[data-step] svg {
     transform: rotate(-90deg);
   }
 

@@ -173,8 +173,12 @@ function bindSlider(name, slider) {
   for (const button of slider.buttons) {
     button.addEventListener("click", () => {
       const current = Number(slider.input.value);
+      const target =
+        "value" in button.dataset
+          ? Number(button.dataset.value)
+          : current + Number(button.dataset.step);
       const value = Math.min(
-        Math.max(current + Number(button.dataset.step), Number(slider.input.min)),
+        Math.max(target, Number(slider.input.min)),
         Number(slider.input.max),
       );
       if (value === current) return;

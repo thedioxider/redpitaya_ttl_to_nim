@@ -114,7 +114,7 @@ done
 # -- App sources, from explicit lists so nothing else ends up on the board.
 app_files=(
     info/info.json info/icon.png
-    index.html css/style.css js/app.js js/format.js js/theme.js assets/theme.svg assets/arrow.svg
+    index.html css/style.css js/app.js js/format.js js/theme.js assets/theme.svg assets/steps.svg
     fpga.sh nginx.conf install.sh
     src/Makefile
 )
