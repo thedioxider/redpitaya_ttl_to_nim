@@ -22,5 +22,6 @@ uint32_t max_steps(uint32_t bits);
 
 uint32_t clamp_steps(uint32_t steps, uint32_t bits);
 
-// The GPIO register value: coarse above fine, each clamped to its width.
+// The GPIO register value: coarse above fine, each clamped to its width, with the MSB set to
+// use the LV input.
 uint32_t compose_register(const Design& design, uint32_t coarse, uint32_t fine);

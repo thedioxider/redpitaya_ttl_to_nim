@@ -4,6 +4,8 @@
 
 namespace {
 
+constexpr uint32_t kUseLvBit = uint32_t{1} << 31;  // selects the LV input; cleared, HV
+
 bool get_uint(const std::map<std::string, std::string>& values, const std::string& key,
               uint32_t& out, std::string& err) {
     auto it = values.find(key);
@@ -46,8 +48,8 @@ bool parse_design(const std::map<std::string, std::string>& values, Design& out,
         err = "fine_bits must be positive";
         return false;
     }
-    if (uint64_t{out.coarse_bits} + out.fine_bits > 32) {
-        err = "coarse_bits + fine_bits must fit the 32-bit register";
+    if (uint64_t{out.coarse_bits} + out.fine_bits > 31) {
+        err = "coarse_bits + fine_bits must fit below the register's input select bit";
         return false;
     }
     return true;
@@ -63,6 +65,6 @@ uint32_t clamp_steps(uint32_t steps, uint32_t bits) {
 }
 
 uint32_t compose_register(const Design& design, uint32_t coarse, uint32_t fine) {
-    return (clamp_steps(coarse, design.coarse_bits) << design.fine_bits) |
+    return kUseLvBit | (clamp_steps(coarse, design.coarse_bits) << design.fine_bits) |
            clamp_steps(fine, design.fine_bits);
 }
