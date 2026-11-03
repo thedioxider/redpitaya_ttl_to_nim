@@ -51,6 +51,11 @@
   box-sizing: border-box;
 }
 
+/* No pull-to-refresh: dragging a vertical slider down would trigger it. */
+html {
+  overscroll-behavior-y: none;
+}
+
 /* Fade theme switches. */
 *,
 *::before {
@@ -340,6 +345,8 @@ input[type="range"]::-moz-range-thumb {
     --fill-dir: to top;
     writing-mode: vertical-lr;
     direction: rtl;
+    /* Vertical drags move the thumb instead of scrolling the page. */
+    touch-action: none;
     inline-size: 52vh;
     margin: 0;
   }
