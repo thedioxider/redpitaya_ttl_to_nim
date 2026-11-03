@@ -119,7 +119,7 @@ function render() {
     const step = perStepPs(name);
     slider.scale.textContent = scaleLabel(slider.title, step);
     slider.time.textContent = formatTime(params[name] * step);
-    slider.steps.textContent = `${params[name]}/${maxSteps(bits)}`;
+    slider.steps.textContent = `${params[name]}/${maxSteps(bits)} steps`;
     slider.input.max = maxSteps(bits);
     // Keep the thumb where the user left it until the controller confirms that value:
     // confirmations of values sent mid-drag can arrive after release.
@@ -142,7 +142,7 @@ function bindSlider(name, slider) {
   slider.input = document.getElementById(id);
   slider.scale = document.getElementById(`${id}-scale`);
   slider.time = document.querySelector(`#${id}-value .time`);
-  slider.steps = document.querySelector(`#${id}-value .steps`);
+  slider.steps = document.querySelector(`#${id}-scale + .steps`);
   slider.dragging = false;
   slider.sent = null;
   slider.sentAt = 0;

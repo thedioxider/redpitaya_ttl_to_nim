@@ -194,8 +194,8 @@ output {
   font-variant-numeric: tabular-nums;
 }
 
-.steps::before {
-  content: " · ";
+.steps:not(:empty)::before {
+  content: ", ";
 }
 
 /* Custom-drawn, since the native slider's thickness can't be changed. Logical sizes keep it
@@ -269,8 +269,11 @@ input[type="range"]::-moz-range-thumb {
     text-align: center;
   }
 
-  :root:not(.no-vertical-sliders) output {
+  :root:not(.no-vertical-sliders) h2 {
     display: grid;
+  }
+
+  :root:not(.no-vertical-sliders) output {
     font-size: 1.125rem;
   }
 
