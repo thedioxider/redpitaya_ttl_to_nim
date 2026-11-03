@@ -51,6 +51,11 @@
   box-sizing: border-box;
 }
 
+/* No pull-to-refresh: dragging a vertical slider down would trigger it. */
+html {
+  overscroll-behavior-y: none;
+}
+
 /* Fade theme switches. */
 *,
 *::before {
@@ -79,6 +84,12 @@ header {
   gap: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--line);
+}
+
+/* Icon lines up with the content edge. */
+.home {
+  margin-left: -8px;
+  margin-right: -8px;
 }
 
 h1 {
@@ -112,6 +123,7 @@ h1 {
   background: var(--wait);
 }
 
+.home,
 .theme,
 .step {
   display: grid;
@@ -126,6 +138,7 @@ h1 {
   cursor: pointer;
 }
 
+.home svg,
 .theme svg,
 .step svg {
   width: 16px;
@@ -138,6 +151,11 @@ h1 {
   border: 1px solid var(--step-border);
   background: var(--step-bg);
   color: var(--accent);
+  /* Holding repeats: no scrolling, text selection or callout menu on long press. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .step svg {
@@ -177,9 +195,14 @@ main {
   padding-top: 24px;
 }
 
+.total,
 .delay {
   display: grid;
   gap: 6px;
+}
+
+.total {
+  grid-column: 1 / -1;
 }
 
 h2 {
@@ -189,13 +212,43 @@ h2 {
   color: var(--muted);
 }
 
-output {
+.value {
   font-size: 1.5rem;
   font-variant-numeric: tabular-nums;
 }
 
-.steps::before {
-  content: " · ";
+#total {
+  font-size: 2.25rem;
+  font-weight: 600;
+}
+
+#total label {
+  white-space: nowrap;
+  cursor: text;
+}
+
+#total input {
+  width: 1ch;
+  padding: 0 0 2px;
+  border: none;
+  border-bottom: 1px dashed var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+
+#total input:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent);
+}
+
+#total input:disabled {
+  border-bottom-color: transparent;
+}
+
+.steps:not(:empty)::before {
+  content: ", ";
 }
 
 /* Custom-drawn, since the native slider's thickness can't be changed. Logical sizes keep it
@@ -264,14 +317,22 @@ input[type="range"]::-moz-range-thumb {
     gap: 16px;
   }
 
+  :root:not(.no-vertical-sliders) .total,
   :root:not(.no-vertical-sliders) .delay {
     justify-items: center;
     text-align: center;
   }
 
-  :root:not(.no-vertical-sliders) output {
+  :root:not(.no-vertical-sliders) h2 {
     display: grid;
+  }
+
+  :root:not(.no-vertical-sliders) .delay .value {
     font-size: 1.125rem;
+  }
+
+  :root:not(.no-vertical-sliders) #total {
+    font-size: 2rem;
   }
 
   :root:not(.no-vertical-sliders) .steps::before {
@@ -289,6 +350,8 @@ input[type="range"]::-moz-range-thumb {
     --fill-dir: to top;
     writing-mode: vertical-lr;
     direction: rtl;
+    /* Vertical drags move the thumb instead of scrolling the page. */
+    touch-action: none;
     inline-size: 52vh;
     margin: 0;
   }

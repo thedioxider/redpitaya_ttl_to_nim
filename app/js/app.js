@@ -1,6 +1,13 @@
 // JS requirement: Chrome 84, Firefox 72, Safari 13.1 (ES modules, ??, all: revert)
 
-import { formatTime, maxSteps, scaleLabel } from "./format.js";
+import {
+  formatCoarse,
+  formatFine,
+  maxSteps,
+  parseAmount,
+  scaleLabel,
+  splitTotal,
+} from "./format.js";
 
 const APP_ID = "ttl2nim";
 const STATUS_URL = `/${APP_ID}/status`;
@@ -12,12 +19,17 @@ const STATUS_POLL_MS = 2000;
 const SEND_INTERVAL_MS = 100;
 // Gives up waiting for the controller to confirm a sent value, e.g. one it already had.
 const CONFIRM_TIMEOUT_MS = 1000;
+// Step buttons held down.
+const REPEAT_DELAY_MS = 400;
+const REPEAT_INTERVAL_MS = 80;
 
 const statusEl = document.getElementById("status");
 const sliders = {
   COARSE: { title: "Coarse", bitsParam: "COARSE_BITS" },
   FINE: { title: "Fine", bitsParam: "FINE_BITS" },
 };
+// [us, ns]
+const totalFields = document.querySelectorAll("#total input");
 
 const params = {};
 let socket = null;
@@ -111,6 +123,7 @@ function render() {
     stopped: "Not running",
   }[state];
 
+  for (const field of totalFields) field.disabled = !ready;
   for (const [name, slider] of Object.entries(sliders)) {
     slider.input.disabled = !ready;
     for (const button of slider.buttons) button.disabled = !ready;
@@ -118,8 +131,6 @@ function render() {
     const bits = params[slider.bitsParam];
     const step = perStepPs(name);
     slider.scale.textContent = scaleLabel(slider.title, step);
-    slider.time.textContent = formatTime(params[name] * step);
-    slider.steps.textContent = `${params[name]}/${maxSteps(bits)}`;
     slider.input.max = maxSteps(bits);
     // Keep the thumb where the user left it until the controller confirms that value:
     // confirmations of values sent mid-drag can arrive after release.
@@ -127,8 +138,75 @@ function render() {
     const confirming =
       slider.sent !== null && Date.now() - slider.sentAt < CONFIRM_TIMEOUT_MS;
     if (!slider.dragging && !confirming) slider.input.value = params[name];
+    slider.shown = confirming ? slider.sent : params[name];
+    const format = name === "COARSE" ? formatCoarse : formatFine;
+    slider.time.textContent = format(slider.shown * step);
+    slider.steps.textContent = `${slider.shown}/${maxSteps(bits)} steps`;
     showFill(slider.input);
   }
+  if ("TICK_PS" in params) showTotal();
+}
+
+function totalPs() {
+  return Object.entries(sliders).reduce(
+    (sum, [name, slider]) => sum + slider.shown * perStepPs(name),
+    0,
+  );
+}
+
+function showTotal() {
+  splitTotal(totalPs()).forEach((value, i) => {
+    const field = totalFields[i];
+    // Leaves what's being typed alone.
+    if (field === document.activeElement) return;
+    field.value = value;
+    fitWidth(field);
+  });
+}
+
+// Rounds to the nearest fine step; fine steps add up to one coarse step.
+function setTotal(ps) {
+  const perCoarse = 2 ** params.FINE_BITS;
+  const fineSteps = Math.round(ps / perStepPs("FINE"));
+  let coarse = Math.floor(fineSteps / perCoarse);
+  let fine = fineSteps % perCoarse;
+  const maxCoarse = maxSteps(params.COARSE_BITS);
+  if (coarse > maxCoarse) [coarse, fine] = [maxCoarse, perCoarse - 1];
+  sliders.COARSE.setSteps(coarse);
+  sliders.FINE.setSteps(fine);
+}
+
+// Each field applies when it loses focus; unparsable text reverts. us with a decimal point
+// replaces the ns (1.5 us reads 1 us 500 ns, 15.0 us zeroes them), ns over 999 carry into us.
+function bindTotal() {
+  const [usField, nsField] = totalFields;
+  let reverting = false;
+  for (const field of totalFields) {
+    field.addEventListener("focus", () => field.select());
+    field.addEventListener("input", () => fitWidth(field));
+    field.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && field === usField) nsField.focus();
+      else if (event.key === "Enter") field.blur();
+      else if (event.key === "Escape") {
+        reverting = true;
+        field.blur();
+      }
+    });
+    field.addEventListener("blur", () => {
+      const us = parseAmount(usField.value);
+      let ns = parseAmount(nsField.value);
+      if (field === usField && /[.,]/.test(usField.value)) ns = 0;
+      if (!reverting && us !== null && ns !== null)
+        setTotal(us * 1e6 + ns * 1e3);
+      reverting = false;
+      render();
+    });
+  }
+}
+
+// Digits are tabular, so a ch per character fits them.
+function fitWidth(field) {
+  field.style.width = `calc(${Math.max(field.value.length, 1)}ch + 2px)`;
 }
 
 // WebKit has no filled-part pseudo-element; the track's gradient stops at --fill instead.
@@ -142,7 +220,7 @@ function bindSlider(name, slider) {
   slider.input = document.getElementById(id);
   slider.scale = document.getElementById(`${id}-scale`);
   slider.time = document.querySelector(`#${id}-value .time`);
-  slider.steps = document.querySelector(`#${id}-value .steps`);
+  slider.steps = document.querySelector(`#${id}-scale + .steps`);
   slider.dragging = false;
   slider.sent = null;
   slider.sentAt = 0;
@@ -169,23 +247,52 @@ function bindSlider(name, slider) {
     flush();
   });
 
+  const setSteps = (target) => {
+    const value = Math.min(
+      Math.max(target, Number(slider.input.min)),
+      Number(slider.input.max),
+    );
+    if (value === Number(slider.input.value)) return;
+    slider.input.value = value;
+    showFill(slider.input);
+    flush();
+  };
+  slider.setSteps = setSteps;
+
   slider.buttons = slider.input.parentElement.querySelectorAll(".step");
   for (const button of slider.buttons) {
-    button.addEventListener("click", () => {
-      const current = Number(slider.input.value);
-      const target =
-        "value" in button.dataset
-          ? Number(button.dataset.value)
-          : current + Number(button.dataset.step);
-      const value = Math.min(
-        Math.max(target, Number(slider.input.min)),
-        Number(slider.input.max),
+    if ("value" in button.dataset) {
+      button.addEventListener("click", () =>
+        setSteps(Number(button.dataset.value)),
       );
-      if (value === current) return;
-      slider.input.value = value;
-      showFill(slider.input);
-      flush();
+      continue;
+    }
+    const press = () =>
+      setSteps(Number(slider.input.value) + Number(button.dataset.step));
+
+    // Held: one step, a pause, then repeats until released.
+    let timer = null;
+    const stop = () => {
+      clearTimeout(timer);
+      timer = null;
+    };
+    button.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      button.setPointerCapture(event.pointerId);
+      press();
+      const repeat = () => {
+        press();
+        timer = setTimeout(repeat, REPEAT_INTERVAL_MS);
+      };
+      timer = setTimeout(repeat, REPEAT_DELAY_MS);
     });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
+      button.addEventListener(type, stop);
+    // Pointer clicks already stepped on pointerdown; keyboard ones have detail 0.
+    button.addEventListener("click", (event) => {
+      if (event.detail === 0) press();
+    });
+    button.addEventListener("contextmenu", (event) => event.preventDefault());
   }
 }
 
@@ -229,6 +336,7 @@ async function main() {
     document.documentElement.classList.add("no-vertical-sliders");
   for (const [name, slider] of Object.entries(sliders))
     bindSlider(name, slider);
+  bindTotal();
   // Browsers may reset form fields when bringing a page back (Firefox on Android does).
   addEventListener("pageshow", render);
   document.addEventListener("visibilitychange", render);

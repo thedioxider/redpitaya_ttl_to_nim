@@ -13,9 +13,15 @@
   </head>
   <body>
     <header>
+      <!-- Red Pitaya's main menu; opening it stops the app -->
+      <a class="home" href="/" aria-label="Home">
+        <svg aria-hidden="true">
+          <use href="assets/home.svg#icon" />
+        </svg>
+      </a>
       <h1>TTL2NIM</h1>
       <span id="status" class="status" data-state="connecting"
-        >Connecting…</span
+        >Connecting&hellip;</span
       >
       <button id="theme" class="theme" type="button" aria-label="Toggle theme">
         <svg aria-hidden="true">
@@ -24,11 +30,38 @@
       </button>
     </header>
     <main>
+      <section class="total">
+        <h2>Total delay</h2>
+        <div id="total" class="value">
+          <label
+            ><input
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              enterkeyhint="next"
+              value="&ndash;"
+              disabled
+              aria-label="Total delay, &micro;s"
+            />
+            &micro;s</label
+          >
+          <label
+            ><input
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              enterkeyhint="done"
+              value="&ndash;"
+              disabled
+              aria-label="Total delay, ns"
+            />
+            ns</label
+          >
+        </div>
+      </section>
       <section class="delay">
-        <h2 id="coarse-scale">Coarse</h2>
-        <output id="coarse-value" for="coarse"
-          ><span class="time">–</span><span class="steps">–</span></output
-        >
+        <h2><span id="coarse-scale">Coarse</span><span class="steps"></span></h2>
+        <output id="coarse-value" class="value" for="coarse"><span class="time">&ndash;</span></output>
         <div class="control">
           <input
             id="coarse"
@@ -41,10 +74,10 @@
             aria-labelledby="coarse-scale"
           />
           <div class="nudge">
-            <button class="step" type="button" data-step="-16" disabled aria-label="Coarse −16 steps">
+            <button class="step" type="button" data-step="-16" disabled aria-label="Coarse &minus;16 steps">
               <svg aria-hidden="true"><use href="assets/steps.svg#many" /></svg>
             </button>
-            <button class="step" type="button" data-step="-1" disabled aria-label="Coarse −1 step">
+            <button class="step" type="button" data-step="-1" disabled aria-label="Coarse &minus;1 step">
               <svg aria-hidden="true"><use href="assets/steps.svg#one" /></svg>
             </button>
             <button class="step" type="button" data-value="0" disabled aria-label="Coarse to 0">
@@ -60,10 +93,8 @@
         </div>
       </section>
       <section class="delay">
-        <h2 id="fine-scale">Fine</h2>
-        <output id="fine-value" for="fine"
-          ><span class="time">–</span><span class="steps">–</span></output
-        >
+        <h2><span id="fine-scale">Fine</span><span class="steps"></span></h2>
+        <output id="fine-value" class="value" for="fine"><span class="time">&ndash;</span></output>
         <div class="control">
           <input
             id="fine"
@@ -76,10 +107,10 @@
             aria-labelledby="fine-scale"
           />
           <div class="nudge">
-            <button class="step" type="button" data-step="-16" disabled aria-label="Fine −16 steps">
+            <button class="step" type="button" data-step="-16" disabled aria-label="Fine &minus;16 steps">
               <svg aria-hidden="true"><use href="assets/steps.svg#many" /></svg>
             </button>
-            <button class="step" type="button" data-step="-1" disabled aria-label="Fine −1 step">
+            <button class="step" type="button" data-step="-1" disabled aria-label="Fine &minus;1 step">
               <svg aria-hidden="true"><use href="assets/steps.svg#one" /></svg>
             </button>
             <button class="step" type="button" data-value="0" disabled aria-label="Fine to 0">
