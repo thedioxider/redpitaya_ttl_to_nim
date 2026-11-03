@@ -19,6 +19,9 @@ const STATUS_POLL_MS = 2000;
 const SEND_INTERVAL_MS = 100;
 // Gives up waiting for the controller to confirm a sent value, e.g. one it already had.
 const CONFIRM_TIMEOUT_MS = 1000;
+// Step buttons held down.
+const REPEAT_DELAY_MS = 400;
+const REPEAT_INTERVAL_MS = 80;
 
 const statusEl = document.getElementById("status");
 const sliders = {
@@ -258,13 +261,38 @@ function bindSlider(name, slider) {
 
   slider.buttons = slider.input.parentElement.querySelectorAll(".step");
   for (const button of slider.buttons) {
-    button.addEventListener("click", () => {
-      setSteps(
-        "value" in button.dataset
-          ? Number(button.dataset.value)
-          : Number(slider.input.value) + Number(button.dataset.step),
+    if ("value" in button.dataset) {
+      button.addEventListener("click", () =>
+        setSteps(Number(button.dataset.value)),
       );
+      continue;
+    }
+    const press = () =>
+      setSteps(Number(slider.input.value) + Number(button.dataset.step));
+
+    // Held: one step, a pause, then repeats until released.
+    let timer = null;
+    const stop = () => {
+      clearTimeout(timer);
+      timer = null;
+    };
+    button.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      button.setPointerCapture(event.pointerId);
+      press();
+      const repeat = () => {
+        press();
+        timer = setTimeout(repeat, REPEAT_INTERVAL_MS);
+      };
+      timer = setTimeout(repeat, REPEAT_DELAY_MS);
     });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
+      button.addEventListener(type, stop);
+    // Pointer clicks already stepped on pointerdown; keyboard ones have detail 0.
+    button.addEventListener("click", (event) => {
+      if (event.detail === 0) press();
+    });
+    button.addEventListener("contextmenu", (event) => event.preventDefault());
   }
 }
 

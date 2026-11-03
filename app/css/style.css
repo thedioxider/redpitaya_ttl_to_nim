@@ -151,6 +151,11 @@ h1 {
   border: 1px solid var(--step-border);
   background: var(--step-bg);
   color: var(--accent);
+  /* Holding repeats: no scrolling, text selection or callout menu on long press. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .step svg {
