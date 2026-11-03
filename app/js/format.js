@@ -18,6 +18,16 @@ export function formatTime(ps) {
   return `${shown === value ? "" : "~"}${shown} ${unit}`;
 }
 
+export function formatCoarse(ps) {
+  const ns = Math.round(ps / 1e3);
+  const us = Math.floor(ns / 1e3);
+  return `${us ? `${us} µs ` : ""}${ns % 1e3} ns`;
+}
+
+export function formatFine(ps) {
+  return `${Number((ps / 1e3).toFixed(2))} ns`;
+}
+
 export function maxSteps(bits) {
   return 2 ** bits - 1;
 }

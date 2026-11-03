@@ -1,6 +1,6 @@
 // JS requirement: Chrome 84, Firefox 72, Safari 13.1 (ES modules, ??, all: revert)
 
-import { formatTime, maxSteps, scaleLabel } from "./format.js";
+import { formatCoarse, formatFine, maxSteps, scaleLabel } from "./format.js";
 
 const APP_ID = "ttl2nim";
 const STATUS_URL = `/${APP_ID}/status`;
@@ -118,7 +118,8 @@ function render() {
     const bits = params[slider.bitsParam];
     const step = perStepPs(name);
     slider.scale.textContent = scaleLabel(slider.title, step);
-    slider.time.textContent = formatTime(params[name] * step);
+    const format = name === "COARSE" ? formatCoarse : formatFine;
+    slider.time.textContent = format(params[name] * step);
     slider.steps.textContent = `${params[name]}/${maxSteps(bits)} steps`;
     slider.input.max = maxSteps(bits);
     // Keep the thumb where the user left it until the controller confirms that value:
