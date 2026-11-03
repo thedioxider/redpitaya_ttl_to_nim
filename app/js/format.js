@@ -24,10 +24,10 @@ export function formatCoarse(ps) {
   return `${us ? `${us} µs ` : ""}${ns % 1e3} ns`;
 }
 
-// -> [whole us, ns to 2 decimals]
+// -> [whole us, ns to 1 decimal]
 export function splitTotal(ps) {
-  const hundredthsNs = Math.round(ps / 10);
-  return [Math.floor(hundredthsNs / 1e5), (hundredthsNs % 1e5) / 100];
+  const tenthsNs = Math.round(ps / 100);
+  return [Math.floor(tenthsNs / 1e4), (tenthsNs % 1e4) / 10];
 }
 
 export function formatFine(ps) {
