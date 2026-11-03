@@ -25,7 +25,7 @@ const sliders = {
   COARSE: { title: "Coarse", bitsParam: "COARSE_BITS" },
   FINE: { title: "Fine", bitsParam: "FINE_BITS" },
 };
-// [µs, ns]
+// [us, ns]
 const totalFields = document.querySelectorAll("#total input");
 
 const params = {};
@@ -173,8 +173,8 @@ function setTotal(ps) {
   sliders.FINE.setSteps(fine);
 }
 
-// Each field applies when it loses focus; unparsable text reverts. A fractional µs replaces
-// the ns (1.5 µs reads 1 µs 500 ns), ns over 999 carry into µs.
+// Each field applies when it loses focus; unparsable text reverts. us with a decimal point
+// replaces the ns (1.5 us reads 1 us 500 ns, 15.0 us zeroes them), ns over 999 carry into us.
 function bindTotal() {
   const [usField, nsField] = totalFields;
   let reverting = false;
@@ -192,7 +192,7 @@ function bindTotal() {
     field.addEventListener("blur", () => {
       const us = parseAmount(usField.value);
       let ns = parseAmount(nsField.value);
-      if (field === usField && !Number.isInteger(us)) ns = 0;
+      if (field === usField && /[.,]/.test(usField.value)) ns = 0;
       if (!reverting && us !== null && ns !== null)
         setTotal(us * 1e6 + ns * 1e3);
       reverting = false;

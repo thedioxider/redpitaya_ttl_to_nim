@@ -4,7 +4,7 @@ const UNITS = [
   [1e6, "µs"],
 ];
 
-// 3 significant digits in ns/µs, whole ps, with "~" if rounded.
+// 3 significant digits in ns/us, whole ps, with "~" if rounded.
 export function formatTime(ps) {
   let [scale, unit] = UNITS[0];
   // Pick the unit after rounding, so 999.6 ps reads "~1 ns", not "~1000 ps".
@@ -24,7 +24,7 @@ export function formatCoarse(ps) {
   return `${us ? `${us} µs ` : ""}${ns % 1e3} ns`;
 }
 
-// → [whole µs, ns to 2 decimals]
+// -> [whole us, ns to 2 decimals]
 export function splitTotal(ps) {
   const hundredthsNs = Math.round(ps / 10);
   return [Math.floor(hundredthsNs / 1e5), (hundredthsNs % 1e5) / 100];
