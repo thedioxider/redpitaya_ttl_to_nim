@@ -81,6 +81,12 @@ header {
   border-bottom: 1px solid var(--line);
 }
 
+/* Icon lines up with the content edge. */
+.home {
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
 h1 {
   margin: 0;
   font-size: 1.25rem;
@@ -112,6 +118,7 @@ h1 {
   background: var(--wait);
 }
 
+.home,
 .theme,
 .step {
   display: grid;
@@ -126,6 +133,7 @@ h1 {
   cursor: pointer;
 }
 
+.home svg,
 .theme svg,
 .step svg {
   width: 16px;
