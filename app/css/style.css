@@ -189,9 +189,34 @@ h2 {
   color: var(--muted);
 }
 
-output {
+.value {
   font-size: 1.5rem;
   font-variant-numeric: tabular-nums;
+}
+
+.time label {
+  white-space: nowrap;
+  cursor: text;
+}
+
+.time input {
+  width: 1ch;
+  padding: 0 0 2px;
+  border: none;
+  border-bottom: 1px dashed var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+
+.time input:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent);
+}
+
+.time input:disabled {
+  border-bottom-color: transparent;
 }
 
 .steps:not(:empty)::before {
@@ -273,7 +298,7 @@ input[type="range"]::-moz-range-thumb {
     display: grid;
   }
 
-  :root:not(.no-vertical-sliders) output {
+  :root:not(.no-vertical-sliders) .value {
     font-size: 1.125rem;
   }
 

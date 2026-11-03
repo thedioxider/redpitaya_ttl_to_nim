@@ -18,14 +18,21 @@ export function formatTime(ps) {
   return `${shown === value ? "" : "~"}${shown} ${unit}`;
 }
 
-export function formatCoarse(ps) {
+// → [whole µs, whole ns]
+export function splitCoarse(ps) {
   const ns = Math.round(ps / 1e3);
-  const us = Math.floor(ns / 1e3);
-  return `${us ? `${us} µs ` : ""}${ns % 1e3} ns`;
+  return [Math.floor(ns / 1e3), ns % 1e3];
 }
 
 export function formatFine(ps) {
   return `${Number((ps / 1e3).toFixed(2))} ns`;
+}
+
+// Non-negative decimal, empty is 0; null if unparsable.
+export function parseAmount(text) {
+  const s = text.trim().replace(",", ".");
+  if (!s) return 0;
+  return /^(\d+\.?\d*|\.\d+)$/.test(s) ? Number(s) : null;
 }
 
 export function maxSteps(bits) {

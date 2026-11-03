@@ -79,6 +79,7 @@ Open *TTL2NIM* from Red Pitaya's home screen, or go to `http://rp-xxxxxx.local/t
 
 - Coarse delay is set in ticks of the FPGA clock (8 ns), fine delay – in fractions of a tick.
 - Arrow buttons change a delay by 1 or 16 steps, $\varnothing$ resets it to 0.
+- Coarse delay can also be typed in µs and ns fields; it's rounded to the nearest step.
 - Delays are persisted on the board and restored the next time the app loads.
 - The converter is robust. Reloading the page or opening it on another device doesn't interrupt the output.
 - Opening Home screen or another app stops the app and unloads the converter bitstream.

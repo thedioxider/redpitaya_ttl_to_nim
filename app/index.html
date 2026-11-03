@@ -26,7 +26,33 @@
     <main>
       <section class="delay">
         <h2><span id="coarse-scale">Coarse</span><span class="steps"></span></h2>
-        <output id="coarse-value" for="coarse"><span class="time">–</span></output>
+        <div id="coarse-value" class="value">
+          <span class="time"
+            ><label
+              ><input
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                enterkeyhint="next"
+                disabled
+                aria-label="Coarse delay, µs"
+              />
+              µs</label
+            >
+            <label
+              ><input
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                enterkeyhint="done"
+                value="–"
+                disabled
+                aria-label="Coarse delay, ns"
+              />
+              ns</label
+            ></span
+          >
+        </div>
         <div class="control">
           <input
             id="coarse"
@@ -59,7 +85,7 @@
       </section>
       <section class="delay">
         <h2><span id="fine-scale">Fine</span><span class="steps"></span></h2>
-        <output id="fine-value" for="fine"><span class="time">–</span></output>
+        <output id="fine-value" class="value" for="fine"><span class="time">–</span></output>
         <div class="control">
           <input
             id="fine"
