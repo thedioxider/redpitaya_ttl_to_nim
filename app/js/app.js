@@ -1,11 +1,12 @@
 // JS requirement: Chrome 84, Firefox 72, Safari 13.1 (ES modules, ??, all: revert)
 
 import {
+  formatCoarse,
   formatFine,
   maxSteps,
   parseAmount,
   scaleLabel,
-  splitCoarse,
+  splitTotal,
 } from "./format.js";
 
 const APP_ID = "ttl2nim";
@@ -24,6 +25,8 @@ const sliders = {
   COARSE: { title: "Coarse", bitsParam: "COARSE_BITS" },
   FINE: { title: "Fine", bitsParam: "FINE_BITS" },
 };
+// [µs, ns]
+const totalFields = document.querySelectorAll("#total input");
 
 const params = {};
 let socket = null;
@@ -117,9 +120,9 @@ function render() {
     stopped: "Not running",
   }[state];
 
+  for (const field of totalFields) field.disabled = !ready;
   for (const [name, slider] of Object.entries(sliders)) {
     slider.input.disabled = !ready;
-    for (const field of slider.fields) field.disabled = !ready;
     for (const button of slider.buttons) button.disabled = !ready;
     if (!("TICK_PS" in params)) continue;
     const bits = params[slider.bitsParam];
@@ -132,22 +135,70 @@ function render() {
     const confirming =
       slider.sent !== null && Date.now() - slider.sentAt < CONFIRM_TIMEOUT_MS;
     if (!slider.dragging && !confirming) slider.input.value = params[name];
-    const shown = confirming ? slider.sent : params[name];
-    if (!slider.fields.length) slider.time.textContent = formatFine(shown * step);
-    else showCoarse(slider, shown * step);
-    slider.steps.textContent = `${shown}/${maxSteps(bits)} steps`;
+    slider.shown = confirming ? slider.sent : params[name];
+    const format = name === "COARSE" ? formatCoarse : formatFine;
+    slider.time.textContent = format(slider.shown * step);
+    slider.steps.textContent = `${slider.shown}/${maxSteps(bits)} steps`;
     showFill(slider.input);
   }
+  if ("TICK_PS" in params) showTotal();
 }
 
-function showCoarse(slider, ps) {
-  splitCoarse(ps).forEach((value, i) => {
-    const field = slider.fields[i];
+function totalPs() {
+  return Object.entries(sliders).reduce(
+    (sum, [name, slider]) => sum + slider.shown * perStepPs(name),
+    0,
+  );
+}
+
+function showTotal() {
+  splitTotal(totalPs()).forEach((value, i) => {
+    const field = totalFields[i];
     // Leaves what's being typed alone.
     if (field === document.activeElement) return;
     field.value = value;
     fitWidth(field);
   });
+}
+
+// Rounds to the nearest fine step; fine steps add up to one coarse step.
+function setTotal(ps) {
+  const perCoarse = 2 ** params.FINE_BITS;
+  const fineSteps = Math.round(ps / perStepPs("FINE"));
+  let coarse = Math.floor(fineSteps / perCoarse);
+  let fine = fineSteps % perCoarse;
+  const maxCoarse = maxSteps(params.COARSE_BITS);
+  if (coarse > maxCoarse) [coarse, fine] = [maxCoarse, perCoarse - 1];
+  sliders.COARSE.setSteps(coarse);
+  sliders.FINE.setSteps(fine);
+}
+
+// Each field applies when it loses focus; unparsable text reverts. A fractional µs replaces
+// the ns (1.5 µs reads 1 µs 500 ns), ns over 999 carry into µs.
+function bindTotal() {
+  const [usField, nsField] = totalFields;
+  let reverting = false;
+  for (const field of totalFields) {
+    field.addEventListener("focus", () => field.select());
+    field.addEventListener("input", () => fitWidth(field));
+    field.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && field === usField) nsField.focus();
+      else if (event.key === "Enter") field.blur();
+      else if (event.key === "Escape") {
+        reverting = true;
+        field.blur();
+      }
+    });
+    field.addEventListener("blur", () => {
+      const us = parseAmount(usField.value);
+      let ns = parseAmount(nsField.value);
+      if (field === usField && !Number.isInteger(us)) ns = 0;
+      if (!reverting && us !== null && ns !== null)
+        setTotal(us * 1e6 + ns * 1e3);
+      reverting = false;
+      render();
+    });
+  }
 }
 
 // Digits are tabular, so a ch per character fits them.
@@ -166,7 +217,6 @@ function bindSlider(name, slider) {
   slider.input = document.getElementById(id);
   slider.scale = document.getElementById(`${id}-scale`);
   slider.time = document.querySelector(`#${id}-value .time`);
-  slider.fields = slider.time.querySelectorAll("input");
   slider.steps = document.querySelector(`#${id}-scale + .steps`);
   slider.dragging = false;
   slider.sent = null;
@@ -204,6 +254,7 @@ function bindSlider(name, slider) {
     showFill(slider.input);
     flush();
   };
+  slider.setSteps = setSteps;
 
   slider.buttons = slider.input.parentElement.querySelectorAll(".step");
   for (const button of slider.buttons) {
@@ -213,35 +264,6 @@ function bindSlider(name, slider) {
           ? Number(button.dataset.value)
           : Number(slider.input.value) + Number(button.dataset.step),
       );
-    });
-  }
-
-  if (!slider.fields.length) return;
-  const [usField, nsField] = slider.fields;
-  let reverting = false;
-  for (const field of slider.fields) {
-    field.addEventListener("focus", () => field.select());
-    field.addEventListener("input", () => fitWidth(field));
-    field.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && field === usField) nsField.focus();
-      else if (event.key === "Enter") field.blur();
-      else if (event.key === "Escape") {
-        reverting = true;
-        field.blur();
-      }
-    });
-  }
-  // Each field applies when it loses focus; unparsable text reverts. A fractional µs replaces
-  // the ns (1.5 µs reads 1 µs 500 ns), ns over 999 carry into µs.
-  for (const field of slider.fields) {
-    field.addEventListener("blur", () => {
-      const us = parseAmount(usField.value);
-      let ns = parseAmount(nsField.value);
-      if (field === usField && !Number.isInteger(us)) ns = 0;
-      if (!reverting && us !== null && ns !== null)
-        setSteps(Math.round((us * 1e6 + ns * 1e3) / perStepPs(name)));
-      reverting = false;
-      render();
     });
   }
 }
@@ -286,6 +308,7 @@ async function main() {
     document.documentElement.classList.add("no-vertical-sliders");
   for (const [name, slider] of Object.entries(sliders))
     bindSlider(name, slider);
+  bindTotal();
   // Browsers may reset form fields when bringing a page back (Firefox on Android does).
   addEventListener("pageshow", render);
   document.addEventListener("visibilitychange", render);

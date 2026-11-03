@@ -18,10 +18,16 @@ export function formatTime(ps) {
   return `${shown === value ? "" : "~"}${shown} ${unit}`;
 }
 
-// → [whole µs, whole ns]
-export function splitCoarse(ps) {
+export function formatCoarse(ps) {
   const ns = Math.round(ps / 1e3);
-  return [Math.floor(ns / 1e3), ns % 1e3];
+  const us = Math.floor(ns / 1e3);
+  return `${us ? `${us} µs ` : ""}${ns % 1e3} ns`;
+}
+
+// → [whole µs, ns to 2 decimals]
+export function splitTotal(ps) {
+  const hundredthsNs = Math.round(ps / 10);
+  return [Math.floor(hundredthsNs / 1e5), (hundredthsNs % 1e5) / 100];
 }
 
 export function formatFine(ps) {

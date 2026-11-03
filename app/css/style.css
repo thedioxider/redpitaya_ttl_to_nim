@@ -185,9 +185,14 @@ main {
   padding-top: 24px;
 }
 
+.total,
 .delay {
   display: grid;
   gap: 6px;
+}
+
+.total {
+  grid-column: 1 / -1;
 }
 
 h2 {
@@ -202,12 +207,16 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
-.time label {
+#total {
+  font-size: 2rem;
+}
+
+#total label {
   white-space: nowrap;
   cursor: text;
 }
 
-.time input {
+#total input {
   width: 1ch;
   padding: 0 0 2px;
   border: none;
@@ -218,12 +227,12 @@ h2 {
   text-align: center;
 }
 
-.time input:focus {
+#total input:focus {
   outline: none;
   border-bottom: 1px solid var(--accent);
 }
 
-.time input:disabled {
+#total input:disabled {
   border-bottom-color: transparent;
 }
 
@@ -297,6 +306,7 @@ input[type="range"]::-moz-range-thumb {
     gap: 16px;
   }
 
+  :root:not(.no-vertical-sliders) .total,
   :root:not(.no-vertical-sliders) .delay {
     justify-items: center;
     text-align: center;
@@ -306,8 +316,12 @@ input[type="range"]::-moz-range-thumb {
     display: grid;
   }
 
-  :root:not(.no-vertical-sliders) .value {
+  :root:not(.no-vertical-sliders) .delay .value {
     font-size: 1.125rem;
+  }
+
+  :root:not(.no-vertical-sliders) #total {
+    font-size: 1.75rem;
   }
 
   :root:not(.no-vertical-sliders) .steps::before {
